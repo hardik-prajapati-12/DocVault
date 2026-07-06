@@ -43,9 +43,9 @@ export class WebDAVClient {
     const isRemote = !requestUrl.startsWith(window.location.origin) && !requestUrl.startsWith('/');
 
     if (isRemote) {
-      requestHeaders['x-target-url'] = this.url;
-      requestUrl = `/api-proxy/${cleanPath}`;
-    }
+  requestHeaders['x-target-url'] = this.url;
+  requestUrl = `/api/api-proxy/${cleanPath}`;
+}
 
     const res = await fetch(requestUrl, {
       method,

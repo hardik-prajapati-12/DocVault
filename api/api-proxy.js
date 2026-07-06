@@ -10,14 +10,19 @@ export const config = {
 export default async function handler(req, res) {
   res.setHeader('Access-Control-Allow-Origin', '*');
   res.setHeader('Access-Control-Allow-Methods', 'GET, POST, PUT, DELETE, PROPFIND, MKCOL, OPTIONS');
-  res.setHeader('Access-Control-Allow-Headers', '*');
+  res.setHeader(
+  'Access-Control-Allow-Headers',
+  'Authorization, Content-Type, Depth, x-target-url'
+);
 
   if (req.method === 'OPTIONS') {
     res.status(204).end();
     return;
   }
 
-  const targetBase = req.headers['x-target-url'];
+  const targetBase = Array.isArray(req.headers['x-target-url'])
+  ? req.headers['x-target-url'][0]
+  : req.headers['x-target-url'];
 
   if (!targetBase) {
     res.status(400).send('Missing x-target-url header');
@@ -54,7 +59,13 @@ export default async function handler(req, res) {
     },
     (proxyRes) => {
       res.writeHead(proxyRes.statusCode || 500, proxyRes.headers);
-      proxyRes.pipe(res);
+      proxyRes.on('error', (err) => {
+  console.error(err);
+
+  if (!res.headersSent) {
+    res.status(500).end();
+  }
+});
     }
   );
 
@@ -62,5 +73,17 @@ export default async function handler(req, res) {
     res.status(500).send(err.message);
   });
 
-  req.pipe(proxyReq);
+  const chunks = [];
+
+for await (const chunk of req) {
+  chunks.push(chunk);
+}
+
+const body = Buffer.concat(chunks);
+
+if (body.length > 0) {
+  proxyReq.write(body);
+}
+
+proxyReq.end();
 }
