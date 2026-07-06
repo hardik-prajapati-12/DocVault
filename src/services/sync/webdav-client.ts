@@ -39,11 +39,10 @@ export class WebDAVClient {
       ...headers,
     };
 
-    // Auto-proxy on localhost to bypass browser CORS limitations
-    const isLocal = window.location.hostname === 'localhost' || window.location.hostname === '127.0.0.1';
+    // Auto-proxy to bypass browser CORS limitations
     const isRemote = !requestUrl.startsWith(window.location.origin) && !requestUrl.startsWith('/');
 
-    if (isLocal && isRemote) {
+    if (isRemote) {
       requestHeaders['x-target-url'] = this.url;
       requestUrl = `/api-proxy/${cleanPath}`;
     }
