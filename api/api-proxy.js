@@ -1,88 +1,66 @@
-const https = require('https');
-const http = require('http');
+import https from 'https';
+import http from 'http';
 
-const handler = async (req, res) => {
-  // Set CORS headers
+export const config = {
+  api: {
+    bodyParser: false,
+  },
+};
+
+export default async function handler(req, res) {
   res.setHeader('Access-Control-Allow-Origin', '*');
   res.setHeader('Access-Control-Allow-Methods', 'GET, POST, PUT, DELETE, PROPFIND, MKCOL, OPTIONS');
   res.setHeader('Access-Control-Allow-Headers', '*');
 
   if (req.method === 'OPTIONS') {
-    res.writeHead(204);
-    res.end();
+    res.status(204).end();
     return;
   }
 
   const targetBase = req.headers['x-target-url'];
+
   if (!targetBase) {
-    res.writeHead(400, { 'Content-Type': 'text/plain' });
-    res.end('Missing x-target-url header');
+    res.status(400).send('Missing x-target-url header');
     return;
   }
 
-  // Extract path suffix after /api/api-proxy
   const proxyPrefix = '/api/api-proxy';
-  let suffix = '';
-  if (req.url.startsWith(proxyPrefix)) {
-    suffix = req.url.slice(proxyPrefix.length);
-  } else {
-    const match = req.url.match(/^\/api\/api-proxy(.*)/);
-    suffix = match ? match[1] : req.url.replace(/^\/[^/]+/, '');
-  }
 
-  const base = targetBase.endsWith('/') ? targetBase.slice(0, -1) : targetBase;
-  const cleanSuffix = suffix.startsWith('/') ? suffix : `/${suffix}`;
-  
-  const fullUrl = new URL(`${base}${cleanSuffix}`);
-  const isHttps = fullUrl.protocol === 'https:';
-  const makeRequest = isHttps ? https.request : http.request;
+  let suffix = req.url.replace(proxyPrefix, '');
 
-  const forwardHeaders = {};
-  for (const [key, value] of Object.entries(req.headers)) {
-    if (
-      key === 'x-target-url' ||
-      key === 'host' ||
-      key === 'origin' ||
-      key === 'referer' ||
-      key === 'connection'
-    ) continue;
-    forwardHeaders[key] = value;
-  }
-  forwardHeaders['host'] = fullUrl.host;
+  const base = targetBase.endsWith('/')
+    ? targetBase.slice(0, -1)
+    : targetBase;
 
-  const proxyReq = makeRequest(
+  const url = new URL(base + suffix);
+
+  const client = url.protocol === 'https:' ? https : http;
+
+  const headers = { ...req.headers };
+
+  delete headers.host;
+  delete headers.origin;
+  delete headers.referer;
+  delete headers.connection;
+  delete headers['x-target-url'];
+
+  const proxyReq = client.request(
     {
-      hostname: fullUrl.hostname,
-      port: fullUrl.port || (isHttps ? 443 : 80),
-      path: fullUrl.pathname + fullUrl.search,
-      method: req.method || 'GET',
-      headers: forwardHeaders,
-      rejectUnauthorized: false,
+      hostname: url.hostname,
+      port: url.port || (url.protocol === 'https:' ? 443 : 80),
+      path: url.pathname + url.search,
+      method: req.method,
+      headers,
     },
     (proxyRes) => {
-      // Forward the response status and headers
-      res.writeHead(proxyRes.statusCode || 502, proxyRes.headers);
-      proxyRes.pipe(res, { end: true });
+      res.writeHead(proxyRes.statusCode || 500, proxyRes.headers);
+      proxyRes.pipe(res);
     }
   );
 
   proxyReq.on('error', (err) => {
-    console.error('[vercel-proxy] Error:', err.message);
-    if (!res.headersSent) {
-      res.writeHead(502, { 'Content-Type': 'text/plain' });
-    }
-    res.end(`Proxy error: ${err.message}`);
+    res.status(500).send(err.message);
   });
 
-  // Pipe the incoming request stream directly to the proxy request
-  req.pipe(proxyReq, { end: true });
-};
-
-module.exports = handler;
-
-// Disable Vercel's default body parser so we can pipe raw streams directly
-module.exports.config = {
-  api: {
-    bodyParser: false,
-  },
-};
+  req.pipe(proxyReq);
+}
