@@ -1,7 +1,7 @@
 const https = require('https');
 const http = require('http');
 
-module.exports = async (req, res) => {
+const handler = async (req, res) => {
   // Set CORS headers
   res.setHeader('Access-Control-Allow-Origin', '*');
   res.setHeader('Access-Control-Allow-Methods', 'GET, POST, PUT, DELETE, PROPFIND, MKCOL, OPTIONS');
@@ -26,7 +26,6 @@ module.exports = async (req, res) => {
   if (req.url.startsWith(proxyPrefix)) {
     suffix = req.url.slice(proxyPrefix.length);
   } else {
-    // Fallback if request rewritten
     const match = req.url.match(/^\/api\/api-proxy(.*)/);
     suffix = match ? match[1] : req.url.replace(/^\/[^/]+/, '');
   }
@@ -51,41 +50,39 @@ module.exports = async (req, res) => {
   }
   forwardHeaders['host'] = fullUrl.host;
 
-  const bodyData = [];
-  req.on('data', (chunk) => {
-    bodyData.push(chunk);
-  });
-
-  req.on('end', () => {
-    const fullBody = Buffer.concat(bodyData);
-    
-    const proxyReq = makeRequest(
-      {
-        hostname: fullUrl.hostname,
-        port: fullUrl.port || (isHttps ? 443 : 80),
-        path: fullUrl.pathname + fullUrl.search,
-        method: req.method || 'GET',
-        headers: forwardHeaders,
-        rejectUnauthorized: false,
-      },
-      (proxyRes) => {
-        // Forward the response status and headers
-        res.writeHead(proxyRes.statusCode || 502, proxyRes.headers);
-        proxyRes.pipe(res, { end: true });
-      }
-    );
-
-    proxyReq.on('error', (err) => {
-      console.error('[vercel-proxy] Error:', err.message);
-      if (!res.headersSent) {
-        res.writeHead(502, { 'Content-Type': 'text/plain' });
-      }
-      res.end(`Proxy error: ${err.message}`);
-    });
-
-    if (fullBody.length > 0) {
-      proxyReq.write(fullBody);
+  const proxyReq = makeRequest(
+    {
+      hostname: fullUrl.hostname,
+      port: fullUrl.port || (isHttps ? 443 : 80),
+      path: fullUrl.pathname + fullUrl.search,
+      method: req.method || 'GET',
+      headers: forwardHeaders,
+      rejectUnauthorized: false,
+    },
+    (proxyRes) => {
+      // Forward the response status and headers
+      res.writeHead(proxyRes.statusCode || 502, proxyRes.headers);
+      proxyRes.pipe(res, { end: true });
     }
-    proxyReq.end();
+  );
+
+  proxyReq.on('error', (err) => {
+    console.error('[vercel-proxy] Error:', err.message);
+    if (!res.headersSent) {
+      res.writeHead(502, { 'Content-Type': 'text/plain' });
+    }
+    res.end(`Proxy error: ${err.message}`);
   });
+
+  // Pipe the incoming request stream directly to the proxy request
+  req.pipe(proxyReq, { end: true });
+};
+
+module.exports = handler;
+
+// Disable Vercel's default body parser so we can pipe raw streams directly
+module.exports.config = {
+  api: {
+    bodyParser: false,
+  },
 };
