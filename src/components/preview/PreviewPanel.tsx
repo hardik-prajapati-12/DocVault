@@ -5,16 +5,17 @@ import { useAppStore } from '@/store/app-store';
 import { useLiveQuery } from 'dexie-react-hooks';
 import { db } from '@/db/db';
 import { getFileBlob, toggleFavorite, softDeleteDocument } from '@/services/file-service';
-import { formatBytes, formatRelativeDate, isImageExtension, isVideoExtension, isAudioExtension, isTextExtension, isPdfExtension, getLanguageForExtension } from '@/utils';
+import { formatBytes, formatRelativeDate, isImageExtension, isVideoExtension, isAudioExtension, isTextExtension, isPdfExtension, getLanguageForExtension, lazyWithRetry } from '@/utils';
 import { FileIcon } from '@/components/files/FileIcon';
 import toast from 'react-hot-toast';
 import { useConfirmStore } from '@/store/confirm-store';
 
-// Lazy-load heavy preview components
-const SyntaxHighlighter = React.lazy(() =>
+// Lazy-load heavy preview components with reload retry logic
+const SyntaxHighlighter = lazyWithRetry(() =>
   import('react-syntax-highlighter').then((mod) => ({ default: mod.Light }))
 );
-const ReactMarkdown = React.lazy(() => import('react-markdown'));
+const ReactMarkdown = lazyWithRetry(() => import('react-markdown'));
+
 
 export const PreviewPanel: React.FC = () => {
   const fileId = useAppStore((s) => s.previewFileId);

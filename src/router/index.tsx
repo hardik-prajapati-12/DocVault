@@ -1,14 +1,16 @@
 import React, { Suspense } from 'react';
 import { createBrowserRouter, RouterProvider } from 'react-router-dom';
 import { MainLayout } from '@/components/layout';
+import { RouteErrorBoundary } from '@/components/ui';
+import { lazyWithRetry } from '@/utils';
 
-// Lazy load pages for code splitting
-const DashboardPage = React.lazy(() => import('@/pages/DashboardPage'));
-const FilesPage = React.lazy(() => import('@/pages/FilesPage'));
-const FavoritesPage = React.lazy(() => import('@/pages/FavoritesPage'));
-const ArchivePage = React.lazy(() => import('@/pages/ArchivePage'));
-const TrashPage = React.lazy(() => import('@/pages/TrashPage'));
-const ConverterPage = React.lazy(() => import('@/pages/ConverterPage'));
+// Lazy load pages for code splitting with reload retry logic
+const DashboardPage = lazyWithRetry(() => import('@/pages/DashboardPage'));
+const FilesPage = lazyWithRetry(() => import('@/pages/FilesPage'));
+const FavoritesPage = lazyWithRetry(() => import('@/pages/FavoritesPage'));
+const ArchivePage = lazyWithRetry(() => import('@/pages/ArchivePage'));
+const TrashPage = lazyWithRetry(() => import('@/pages/TrashPage'));
+const ConverterPage = lazyWithRetry(() => import('@/pages/ConverterPage'));
 
 const PageLoader = () => (
   <div className="flex items-center justify-center h-64">
@@ -20,7 +22,9 @@ const router = createBrowserRouter([
   {
     path: '/',
     element: <MainLayout />,
+    errorElement: <RouteErrorBoundary />,
     children: [
+
       {
         index: true,
         element: (

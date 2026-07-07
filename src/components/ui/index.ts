@@ -5,3 +5,5 @@ export { Skeleton, FileCardSkeleton, FileListSkeleton, DashboardSkeleton } from 
 export { ContextMenu } from './ContextMenu';
 export type { ContextMenuItem, ContextMenuRef } from './ContextMenu';
 export { ErrorBoundary } from './ErrorBoundary';
+export { RouteErrorBoundary } from './RouteErrorBoundary';
+

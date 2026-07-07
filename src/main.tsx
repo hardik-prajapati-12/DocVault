@@ -3,6 +3,13 @@ import { createRoot } from 'react-dom/client';
 import App from './App';
 import './index.css';
 
+// Clear chunk reload failed flag once the app is loaded/reloaded successfully
+try {
+  sessionStorage.removeItem('chunk-reload-failed');
+} catch (e) {
+  console.error('Failed to clear session storage:', e);
+}
+
 // Set initial theme before first render to avoid flash
 const stored = localStorage.getItem('docvault-app-store');
 if (stored) {
