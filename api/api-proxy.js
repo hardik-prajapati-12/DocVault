@@ -41,13 +41,32 @@ export default async function handler(req, res) {
 
   const client = url.protocol === 'https:' ? https : http;
 
-  const headers = { ...req.headers };
+  // Whitelist and canonicalize safe headers to prevent Vercel proxy headers
+  // (like x-forwarded-for, x-real-ip) from triggering WAF / security block 403 Forbidden on WebDAV.
+  const canonicalHeaders = {
+    'authorization': 'Authorization',
+    'depth': 'Depth',
+    'content-type': 'Content-Type',
+    'content-length': 'Content-Length',
+    'user-agent': 'User-Agent',
+    'accept': 'Accept',
+    'accept-encoding': 'Accept-Encoding',
+    'accept-language': 'Accept-Language',
+    'overwrite': 'Overwrite',
+    'destination': 'Destination',
+    'if': 'If',
+    'lock-token': 'Lock-Token',
+    'timeout': 'Timeout',
+    'translate': 'Translate',
+  };
 
-  delete headers.host;
-  delete headers.origin;
-  delete headers.referer;
-  delete headers.connection;
-  delete headers['x-target-url'];
+  const headers = {};
+  for (const [key, value] of Object.entries(req.headers)) {
+    const lowerKey = key.toLowerCase();
+    if (canonicalHeaders[lowerKey]) {
+      headers[canonicalHeaders[lowerKey]] = value;
+    }
+  }
 
   const proxyReq = client.request(
     {
