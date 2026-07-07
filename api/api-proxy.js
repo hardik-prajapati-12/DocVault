@@ -59,13 +59,14 @@ export default async function handler(req, res) {
     },
     (proxyRes) => {
       res.writeHead(proxyRes.statusCode || 500, proxyRes.headers);
+      proxyRes.pipe(res, { end: true });
       proxyRes.on('error', (err) => {
-  console.error(err);
+        console.error(err);
 
-  if (!res.headersSent) {
-    res.status(500).end();
-  }
-});
+        if (!res.headersSent) {
+          res.status(500).end();
+        }
+      });
     }
   );
 
