@@ -1,50 +1,21 @@
 {
-  "name": "docvault",
+  "name": "docvault-monorepo",
   "private": true,
-  "version": "0.0.0",
-  "type": "module",
+  "version": "1.0.0",
+  "description": "Monorepo for DocVault MERN stack application",
+  "workspaces": [
+    "frontend",
+    "backend"
+  ],
   "scripts": {
-    "dev": "vite",
-    "build": "tsc -b && vite build",
-    "lint": "oxlint",
-    "preview": "vite preview"
-  },
-  "dependencies": {
-    "browser-image-compression": "^2.0.2",
-    "date-fns": "^4.4.0",
-    "dexie": "^4.4.4",
-    "dexie-react-hooks": "^4.4.0",
-    "fflate": "^0.8.3",
-    "framer-motion": "^12.42.2",
-    "lucide-react": "^1.23.0",
-    "papaparse": "^5.5.4",
-    "pdf-lib": "^1.17.1",
-    "pdfjs-dist": "5.4.296",
-    "react": "^19.2.7",
-    "react-dom": "^19.2.7",
-    "react-hot-toast": "^2.6.0",
-    "react-markdown": "^10.1.0",
-    "react-pdf": "^10.4.1",
-    "react-router-dom": "^7.18.1",
-    "react-syntax-highlighter": "^16.1.1",
-    "react-virtuoso": "^4.18.10",
-    "recharts": "^3.9.2",
-    "uuid": "^14.0.1",
-    "zustand": "^5.0.14"
+    "install:all": "npm install --prefix frontend && npm install --prefix backend",
+    "dev:frontend": "npm run dev --prefix frontend",
+    "dev:backend": "npm run dev --prefix backend",
+    "dev": "concurrently \"npm run dev:frontend\" \"npm run dev:backend\"",
+    "build:frontend": "npm run build --prefix frontend",
+    "build": "npm run build:frontend"
   },
   "devDependencies": {
-    "@tailwindcss/vite": "^4.3.2",
-    "@types/node": "^24.13.2",
-    "@types/papaparse": "^5.5.2",
-    "@types/react": "^19.2.17",
-    "@types/react-dom": "^19.2.3",
-    "@types/react-syntax-highlighter": "^15.5.13",
-    "@types/uuid": "^10.0.0",
-    "@vitejs/plugin-react": "^6.0.3",
-    "oxlint": "^1.71.0",
-    "tailwindcss": "^4.3.2",
-    "typescript": "~6.0.2",
-    "vite": "^8.1.1",
-    "vite-plugin-pwa": "^1.3.0"
+    "concurrently": "^8.2.2"
   }
 }
