@@ -271,6 +271,58 @@ export default function ConverterPage() {
     }
   };
 
+  // Helper to check if a character code maps to a valid WinAnsi byte
+  const isWinAnsi = (code: number): boolean => {
+    // ASCII standard character set
+    if (code >= 0 && code <= 127) return true;
+    // Standard Windows-1252 extensions
+    if (code >= 160 && code <= 255) return true;
+    // Specific characters mapping inside 128-159 range
+    const allowed = [
+      8364, 8218, 402, 8222, 8230, 8224, 8225, 710, 8240, 352, 8250, 338, 381,
+      8216, 8217, 8220, 8221, 8226, 8211, 8212, 732, 8482, 353, 8250, 339, 382, 376
+    ];
+    return allowed.includes(code);
+  };
+
+  // Sanitizes a string for standard WinAnsi standard font compatibility in pdf-lib
+  const sanitizeForWinAnsi = (text: string): string => {
+    if (!text) return '';
+    
+    // Replace common symbols not in WinAnsi with readable ASCII equivalents
+    const replacements: Record<string, string> = {
+      '→': '->',
+      '←': '<-',
+      '↑': '^',
+      '↓': 'v',
+      '↔': '<->',
+      '≠': '!=',
+      '≤': '<=',
+      '≥': '>=',
+      '✔': '[yes]',
+      '✅': '[yes]',
+      '❌': '[no]',
+      '●': '*',
+      '…': '...',
+    };
+
+    let result = '';
+    for (let i = 0; i < text.length; i++) {
+      const char = text[i];
+      if (replacements[char] !== undefined) {
+        result += replacements[char];
+      } else {
+        const code = char.charCodeAt(0);
+        if (isWinAnsi(code)) {
+          result += char;
+        } else {
+          result += '?';
+        }
+      }
+    }
+    return result;
+  };
+
   // 4. Word (.docx) to PDF
   const handleDocxToPdf = async () => {
     if (files.length === 0) return;
@@ -309,13 +361,14 @@ export default function ConverterPage() {
       let y = 740;
 
       for (const para of paragraphs) {
+        const cleanPara = sanitizeForWinAnsi(para);
         if (y < 80) {
           page = pdfDoc.addPage([612, 792]);
           y = 740;
         }
 
         // Simple text wrap
-        const words = para.split(' ');
+        const words = cleanPara.split(' ');
         let line = '';
         for (const word of words) {
           const testLine = line + word + ' ';
@@ -512,7 +565,7 @@ export default function ConverterPage() {
         const cols = Object.keys(rows[rowNum]).sort();
         let x = 50;
         for (const col of cols) {
-          const text = rows[rowNum][col];
+          const text = sanitizeForWinAnsi(rows[rowNum][col]);
           page.drawText(text, { x, y, size: 9, font, color: rgb(0.15, 0.15, 0.15) });
           // cell boundary
           page.drawRectangle({

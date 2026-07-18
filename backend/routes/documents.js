@@ -264,4 +264,49 @@ router.post('/empty-trash', async (req, res) => {
   }
 });
 
+// Bulk Import/Upsert Document Metadata
+router.post('/import', async (req, res) => {
+  try {
+    const { documents } = req.body;
+    if (!Array.isArray(documents)) {
+      return res.status(400).json({ error: 'documents must be an array' });
+    }
+    for (const d of documents) {
+      await DocFile.findOneAndUpdate(
+        { id: d.id },
+        {
+          ...d,
+          createdAt: d.createdAt ? new Date(d.createdAt) : new Date(),
+          modifiedAt: d.modifiedAt ? new Date(d.modifiedAt) : new Date(),
+          uploadedAt: d.uploadedAt ? new Date(d.uploadedAt) : new Date(),
+          deletedAt: d.deletedAt ? new Date(d.deletedAt) : null,
+        },
+        { upsert: true }
+      );
+    }
+    res.json({ message: 'Documents imported successfully' });
+  } catch (error) {
+    res.status(500).json({ error: error.message });
+  }
+});
+
+// Clear All Documents (App Reset)
+router.post('/clear-all', async (req, res) => {
+  try {
+    const docs = await DocFile.find({});
+    for (const doc of docs) {
+      if (doc.opfsPath) {
+        const filePath = path.join(uploadDir, doc.opfsPath);
+        if (fs.existsSync(filePath)) {
+          fs.unlinkSync(filePath);
+        }
+      }
+    }
+    await DocFile.deleteMany({});
+    res.json({ message: 'All documents cleared' });
+  } catch (error) {
+    res.status(500).json({ error: error.message });
+  }
+});
+
 export default router;

@@ -1,11 +1,10 @@
 /**
  * Sync Service — Handles bi-directional, conflict-resolved synchronization
- * between local IndexedDB/OPFS storage and a remote WebDAV server.
+ * between local MERN backend storage and a remote WebDAV server.
  */
 
-import { db } from '@/db/db';
 import { WebDAVClient } from './webdav-client';
-import { saveFile, readFile, deleteFile as deleteFromStorage } from '@/services/storage/opfs-storage';
+import { getFileBlob } from '@/services/file-service';
 import { useAppStore } from '@/store/app-store';
 import type { DocFile, Folder } from '@/types';
 import toast from 'react-hot-toast';
@@ -54,9 +53,9 @@ export class SyncService {
         // Metadata doesn't exist yet, we will create it at the end
       }
 
-      // 3. Load local database contents
-      const localDocs = await db.documents.toArray();
-      const localFolders = await db.folders.toArray();
+      // 3. Load local database contents from MERN Zustand store
+      const localDocs = useAppStore.getState().documents;
+      const localFolders = useAppStore.getState().folders;
 
       // Create lookup maps
       const localDocMap = new Map<string, DocFile>();
@@ -139,7 +138,7 @@ export class SyncService {
 
       // ── Process Uploads ──
       for (const doc of docsToUpload) {
-        const blob = await readFile(doc.id);
+        const blob = await getFileBlob(doc.id);
         if (blob) {
           await this.client.uploadFile(`${SYNC_FOLDER}/${doc.id}`, blob);
           remoteDocMap.set(doc.id, doc);
@@ -152,9 +151,35 @@ export class SyncService {
         if (remoteDoc) {
           try {
             const blob = await this.client.downloadFile(`${SYNC_FOLDER}/${id}`);
-            await saveFile(id, blob);
-            await db.documents.put(remoteDoc);
-            localDocMap.set(id, remoteDoc);
+            const fileOfBlob = new File([blob], remoteDoc.name, { type: remoteDoc.mimeType });
+            const formData = new FormData();
+            formData.append('file', fileOfBlob);
+            formData.append('id', remoteDoc.id);
+            formData.append('name', remoteDoc.name);
+            formData.append('extension', remoteDoc.extension);
+            formData.append('mimeType', remoteDoc.mimeType);
+            formData.append('folderId', remoteDoc.folderId || '');
+            formData.append('isFavorite', String(remoteDoc.isFavorite));
+            formData.append('isArchived', String(remoteDoc.isArchived));
+            formData.append('isDeleted', String(remoteDoc.isDeleted));
+            formData.append('createdAt', new Date(remoteDoc.createdAt).toISOString());
+            formData.append('modifiedAt', new Date(remoteDoc.modifiedAt).toISOString());
+            if (remoteDoc.thumbnailDataUrl) {
+              formData.append('thumbnailDataUrl', remoteDoc.thumbnailDataUrl);
+            }
+            if (remoteDoc.tags) {
+              formData.append('tags', JSON.stringify(remoteDoc.tags));
+            }
+
+            const res = await fetch('/api/documents/upload', {
+              method: 'POST',
+              body: formData,
+            });
+            if (!res.ok) {
+              throw new Error(`Upload to backend failed: ${res.statusText}`);
+            }
+            const savedDoc = await res.json();
+            localDocMap.set(id, savedDoc);
           } catch (e) {
             console.error(`Failed to download file ${id}:`, e);
           }
@@ -165,9 +190,13 @@ export class SyncService {
       for (const id of docsToDeleteLocally) {
         const local = localDocMap.get(id);
         if (local) {
-          await db.documents.update(id, {
-            isDeleted: 1,
-            deletedAt: new Date(mergedDeletedIds[id] || Date.now()),
+          await fetch(`/api/documents/${id}`, {
+            method: 'PUT',
+            headers: { 'Content-Type': 'application/json' },
+            body: JSON.stringify({
+              isDeleted: 1,
+              deletedAt: new Date(mergedDeletedIds[id] || Date.now()),
+            }),
           });
         }
       }
@@ -179,16 +208,27 @@ export class SyncService {
       }
 
       // ── Sync Folders ──
+      const foldersToImport = [];
       const mergedFolders = [...localFolders];
-      remoteMeta.folders.forEach((rf) => {
+      for (const rf of remoteMeta.folders) {
         rf.createdAt = new Date(rf.createdAt);
         rf.modifiedAt = new Date(rf.modifiedAt);
         const exists = localFolders.some((lf) => lf.id === rf.id);
         if (!exists) {
-          db.folders.put(rf);
+          foldersToImport.push(rf);
           mergedFolders.push(rf);
         }
-      });
+      }
+      if (foldersToImport.length > 0) {
+        const res = await fetch('/api/folders/import', {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({ folders: foldersToImport }),
+        });
+        if (!res.ok) {
+          throw new Error(`Folder import failed: ${res.statusText}`);
+        }
+      }
 
       // ── Save Updated Metadata to WebDAV ──
       const updatedMeta: SyncMetadata = {
@@ -204,6 +244,8 @@ export class SyncService {
 
       // Save sync complete
       useAppStore.getState().setLastSyncedAt(Date.now());
+      // Refresh local store from MERN backend
+      await useAppStore.getState().fetchData();
       toast.success('Sync complete!', { id: toastId });
     } catch (error) {
       console.error(error);

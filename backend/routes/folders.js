@@ -70,4 +70,38 @@ router.delete('/:id', async (req, res) => {
   }
 });
 
+// Bulk Import/Upsert Folder Metadata
+router.post('/import', async (req, res) => {
+  try {
+    const { folders } = req.body;
+    if (!Array.isArray(folders)) {
+      return res.status(400).json({ error: 'folders must be an array' });
+    }
+    for (const f of folders) {
+      await Folder.findOneAndUpdate(
+        { id: f.id },
+        {
+          ...f,
+          createdAt: f.createdAt ? new Date(f.createdAt) : new Date(),
+          modifiedAt: f.modifiedAt ? new Date(f.modifiedAt) : new Date(),
+        },
+        { upsert: true }
+      );
+    }
+    res.json({ message: 'Folders imported successfully' });
+  } catch (error) {
+    res.status(500).json({ error: error.message });
+  }
+});
+
+// Clear All Folders (App Reset)
+router.post('/clear-all', async (req, res) => {
+  try {
+    await Folder.deleteMany({});
+    res.json({ message: 'All folders cleared' });
+  } catch (error) {
+    res.status(500).json({ error: error.message });
+  }
+});
+
 export default router;

@@ -2,12 +2,13 @@ import React, { useState } from 'react';
 import { motion } from 'framer-motion';
 import {
   Moon, Sun, Monitor, Palette, Grid3X3, List, Download, Upload,
-  Trash2, Database, RefreshCw, AlertTriangle, HardDrive, Cloud,
+  Trash2, Database, RefreshCw, HardDrive, Cloud,
 } from 'lucide-react';
 import { Modal, Button, ConfirmDialog } from '@/components/ui';
 import { useAppStore } from '@/store/app-store';
 import { db } from '@/db/db';
-import { clearAllFiles, exportAllFiles, getStorageEstimate } from '@/services/storage/opfs-storage';
+import { clearAllFiles, getStorageEstimate } from '@/services/storage/opfs-storage';
+import { getFileBlob } from '@/services/file-service';
 import { formatBytes } from '@/utils';
 import { createZipArchive } from '@/services/compression/compression-service';
 import type { ThemeMode, AccentColor, ViewMode } from '@/types';
@@ -72,8 +73,8 @@ export const SettingsPanel: React.FC = () => {
 
   const handleExportDB = async () => {
     try {
-      const docs = await db.documents.toArray();
-      const folders = await db.folders.toArray();
+      const docs = useAppStore.getState().documents;
+      const folders = useAppStore.getState().folders;
       const data = JSON.stringify({ documents: docs, folders }, null, 2);
       const blob = new Blob([data], { type: 'application/json' });
       const url = URL.createObjectURL(blob);
@@ -98,28 +99,30 @@ export const SettingsPanel: React.FC = () => {
       try {
         const text = await file.text();
         const data = JSON.parse(text);
-        if (data.documents) {
-          // Convert date strings back to Date objects
-          const docs = data.documents.map((d: Record<string, unknown>) => ({
-            ...d,
-            createdAt: new Date(d.createdAt as string),
-            modifiedAt: new Date(d.modifiedAt as string),
-            uploadedAt: new Date(d.uploadedAt as string),
-            deletedAt: d.deletedAt ? new Date(d.deletedAt as string) : null,
-          }));
-          await db.documents.bulkPut(docs);
+        
+        if (data.folders && data.folders.length > 0) {
+          const res = await fetch('/api/folders/import', {
+            method: 'POST',
+            headers: { 'Content-Type': 'application/json' },
+            body: JSON.stringify({ folders: data.folders }),
+          });
+          if (!res.ok) throw new Error('Folder import failed');
         }
-        if (data.folders) {
-          const folders = data.folders.map((f: Record<string, unknown>) => ({
-            ...f,
-            createdAt: new Date(f.createdAt as string),
-            modifiedAt: new Date(f.modifiedAt as string),
-          }));
-          await db.folders.bulkPut(folders);
+
+        if (data.documents && data.documents.length > 0) {
+          const res = await fetch('/api/documents/import', {
+            method: 'POST',
+            headers: { 'Content-Type': 'application/json' },
+            body: JSON.stringify({ documents: data.documents }),
+          });
+          if (!res.ok) throw new Error('Document import failed');
         }
+
+        await useAppStore.getState().fetchData();
         toast.success('Database imported');
-      } catch {
-        toast.error('Invalid import file');
+      } catch (error) {
+        console.error(error);
+        toast.error('Invalid import file or server error');
       }
     };
     input.click();
@@ -128,8 +131,8 @@ export const SettingsPanel: React.FC = () => {
   const handleFullBackup = async () => {
     try {
       toast.loading('Creating backup...', { id: 'backup' });
-      const docs = await db.documents.toArray();
-      const folders = await db.folders.toArray();
+      const docs = useAppStore.getState().documents;
+      const folders = useAppStore.getState().folders;
       const metaBlob = new Blob(
         [JSON.stringify({ documents: docs, folders }, null, 2)],
         { type: 'application/json' }
@@ -139,11 +142,12 @@ export const SettingsPanel: React.FC = () => {
         { name: 'metadata.json', blob: metaBlob },
       ];
 
-      const allFiles = await exportAllFiles();
-      allFiles.forEach((blob, id) => {
-        const doc = docs.find((d) => d.id === id);
-        files.push({ name: `files/${doc?.name || id}`, blob });
-      });
+      for (const doc of docs) {
+        const blob = await getFileBlob(doc.id);
+        if (blob) {
+          files.push({ name: `files/${doc.name}`, blob });
+        }
+      }
 
       const zipBlob = await createZipArchive(files);
       const url = URL.createObjectURL(zipBlob);
@@ -153,7 +157,8 @@ export const SettingsPanel: React.FC = () => {
       a.click();
       URL.revokeObjectURL(url);
       toast.success('Backup created', { id: 'backup' });
-    } catch {
+    } catch (error) {
+      console.error(error);
       toast.error('Backup failed', { id: 'backup' });
     }
   };
@@ -164,12 +169,17 @@ export const SettingsPanel: React.FC = () => {
       await db.documents.clear();
       await db.folders.clear();
       await db.settings.clear();
+
+      await fetch('/api/documents/clear-all', { method: 'POST' });
+      await fetch('/api/folders/clear-all', { method: 'POST' });
+
       localStorage.clear();
       toast.success('Application reset');
       setResetConfirm(false);
       setOpen(false);
       window.location.reload();
-    } catch {
+    } catch (error) {
+      console.error(error);
       toast.error('Reset failed');
     }
   };

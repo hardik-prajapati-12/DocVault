@@ -12,6 +12,8 @@
 import type { Plugin } from 'vite';
 import { request as httpsRequest } from 'https';
 import { request as httpRequest } from 'http';
+import fs from 'fs';
+import path from 'path';
 
 export function corsProxyPlugin(): Plugin {
   return {
@@ -26,8 +28,6 @@ export function corsProxyPlugin(): Plugin {
           req.on('end', () => {
             try {
               const data = JSON.parse(body);
-              const fs = require('fs');
-              const path = require('path');
               
               if (data.png192) {
                 fs.writeFileSync(path.join(process.cwd(), 'public/pwa-192x192.png'), Buffer.from(data.png192, 'base64'));
@@ -52,7 +52,7 @@ export function corsProxyPlugin(): Plugin {
         res.end();
       });
 
-      server.middlewares.use('/api-proxy', (req, res) => {
+      server.middlewares.use('/api/api-proxy', (req, res) => {
         const targetBase = req.headers['x-target-url'] as string | undefined;
         if (!targetBase) {
           res.writeHead(400, { 'Content-Type': 'text/plain' });
