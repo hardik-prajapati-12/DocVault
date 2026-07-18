@@ -301,12 +301,11 @@ export const PreviewPanel: React.FC = () => {
               )}
             </div>
 
-            {/* File Details Footer */}
             <div className="p-3 border-t border-[var(--border-color)] flex items-center gap-4 text-xs text-[var(--text-tertiary)]">
               <span>Type: {file.mimeType}</span>
-              <span>Created: {file.createdAt.toLocaleDateString()}</span>
-              <span>Modified: {file.modifiedAt.toLocaleDateString()}</span>
-              <span>Uploaded: {file.uploadedAt.toLocaleDateString()}</span>
+              <span>Created: {new Date(file.createdAt).toLocaleDateString()}</span>
+              <span>Modified: {new Date(file.modifiedAt).toLocaleDateString()}</span>
+              <span>Uploaded: {new Date(file.uploadedAt).toLocaleDateString()}</span>
             </div>
           </motion.div>
         </motion.div>

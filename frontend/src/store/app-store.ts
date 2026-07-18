@@ -143,8 +143,23 @@ export const useAppStore = create<AppState>()(
             fetch('/api/folders'),
           ]);
           if (docsRes.ok && foldersRes.ok) {
-            const documents = await docsRes.json();
-            const folders = await foldersRes.json();
+            const rawDocs = await docsRes.json();
+            const rawFolders = await foldersRes.json();
+
+            const documents = rawDocs.map((doc: any) => ({
+              ...doc,
+              createdAt: new Date(doc.createdAt),
+              modifiedAt: new Date(doc.modifiedAt),
+              uploadedAt: new Date(doc.uploadedAt),
+              deletedAt: doc.deletedAt ? new Date(doc.deletedAt) : null,
+            }));
+
+            const folders = rawFolders.map((f: any) => ({
+              ...f,
+              createdAt: new Date(f.createdAt),
+              modifiedAt: new Date(f.modifiedAt),
+            }));
+
             set({ documents, folders });
           }
         } catch (error) {
