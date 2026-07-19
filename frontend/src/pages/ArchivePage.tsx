@@ -626,13 +626,20 @@ export const ArchivePage: React.FC = () => {
               </div>
 
               <div className="flex gap-2.5">
-                {files.length > 0 && !selectionMode && (
+                {files.length > 0 && (
                   <Button
-                    variant="secondary"
-                    onClick={() => setSelectionMode(true)}
-                    icon={<CheckSquare className="w-4 h-4" />}
+                    variant={selectionMode ? 'ghost' : 'secondary'}
+                    onClick={() => {
+                      if (selectionMode) {
+                        clearSelection();
+                        setSelectionMode(false);
+                      } else {
+                        setSelectionMode(true);
+                      }
+                    }}
+                    icon={selectionMode ? <X className="w-4 h-4" /> : <CheckSquare className="w-4 h-4" />}
                   >
-                    Select Files
+                    {selectionMode ? 'Close Selection' : 'Select Files'}
                   </Button>
                 )}
                 <Button variant="secondary" onClick={handleLock} icon={<Lock className="w-4 h-4" />}>

@@ -97,14 +97,21 @@ const FavoritesPage: React.FC = () => {
             {loading ? 'Loading...' : `${files.length} favorite files`}
           </p>
         </div>
-        {files.length > 0 && !selectionMode && (
+        {files.length > 0 && (
           <Button
-            variant="secondary"
+            variant={selectionMode ? 'ghost' : 'secondary'}
             size="sm"
-            onClick={() => setSelectionMode(true)}
-            icon={<CheckSquare className="w-3.5 h-3.5" />}
+            onClick={() => {
+              if (selectionMode) {
+                clearSelection();
+                setSelectionMode(false);
+              } else {
+                setSelectionMode(true);
+              }
+            }}
+            icon={selectionMode ? <X className="w-3.5 h-3.5" /> : <CheckSquare className="w-3.5 h-3.5" />}
           >
-            Select Files
+            {selectionMode ? 'Close Selection' : 'Select Files'}
           </Button>
         )}
       </div>

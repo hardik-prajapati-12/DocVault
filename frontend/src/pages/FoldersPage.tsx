@@ -284,13 +284,20 @@ export const FoldersPage: React.FC = () => {
         </div>
 
         <div className="flex gap-2.5 self-start sm:self-auto flex-wrap sm:flex-nowrap">
-          {folderId && currentFiles.length > 0 && !selectionMode && (
+          {folderId && currentFiles.length > 0 && (
             <Button
-              onClick={() => setSelectionMode(true)}
-              icon={<CheckSquare className="w-4 h-4" />}
-              variant="secondary"
+              onClick={() => {
+                if (selectionMode) {
+                  clearSelection();
+                  setSelectionMode(false);
+                } else {
+                  setSelectionMode(true);
+                }
+              }}
+              icon={selectionMode ? <X className="w-4 h-4" /> : <CheckSquare className="w-4 h-4" />}
+              variant={selectionMode ? 'ghost' : 'secondary'}
             >
-              Select Files
+              {selectionMode ? 'Close Selection' : 'Select Files'}
             </Button>
           )}
           {folderId && (
