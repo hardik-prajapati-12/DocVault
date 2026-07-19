@@ -405,8 +405,13 @@ export const FoldersPage: React.FC = () => {
                 {isSelected && <span className="text-white text-xs font-bold">✓</span>}
               </div>
             ) : (
-              <div className="w-10 h-10 rounded-xl bg-[var(--accent-dim)] flex items-center justify-center text-[var(--accent)]">
-                <FolderIcon className="w-5 h-5 fill-[var(--accent)]" />
+              <div className="relative">
+                <div className="w-10 h-10 rounded-xl bg-[var(--accent-dim)] flex items-center justify-center text-[var(--accent)]">
+                  <FolderIcon className="w-5 h-5 fill-[var(--accent)]" />
+                </div>
+                {folder.isFavorite === 1 && (
+                  <Star className="w-3.5 h-3.5 text-amber-400 fill-amber-400 absolute -top-1 -right-1 drop-shadow" />
+                )}
               </div>
             )}
             {!selectionMode && (
