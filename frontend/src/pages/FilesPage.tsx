@@ -1,10 +1,10 @@
 import React, { useMemo } from 'react';
 import { motion } from 'framer-motion';
-import { Files, CheckSquare, Trash2, Download, X } from 'lucide-react';
+import { Files, CheckSquare, Trash2, Download, X, Archive, Star } from 'lucide-react';
 import { useAppStore } from '@/store/app-store';
 import { FileGrid, FileList, FloatingActionButton } from '@/components/files';
 import { Button } from '@/components/ui';
-import { bulkSoftDelete } from '@/services/file-service';
+import { bulkSoftDelete, bulkArchive, bulkFavorite } from '@/services/file-service';
 import { getFileBlob } from '@/services/file-service';
 import { createZipArchive } from '@/services/compression/compression-service';
 import { getFileTypeCategory, FILE_CATEGORIES } from '@/types';
@@ -102,6 +102,20 @@ const FilesPage: React.FC = () => {
     clearSelection();
   };
 
+  const handleBulkFavorite = async () => {
+    if (selectedIds.size === 0) return;
+    await bulkFavorite(Array.from(selectedIds), 1);
+    toast.success(`Added ${selectedIds.size} files to favorites`);
+    clearSelection();
+  };
+
+  const handleBulkArchive = async () => {
+    if (selectedIds.size === 0) return;
+    await bulkArchive(Array.from(selectedIds), 1);
+    toast.success(`Archived ${selectedIds.size} files`);
+    clearSelection();
+  };
+
   const handleBulkDownload = async () => {
     if (selectedIds.size === 0) return;
     toast.loading('Preparing download...', { id: 'bulk-dl' });
@@ -168,6 +182,22 @@ const FilesPage: React.FC = () => {
               icon={<Download className="w-3.5 h-3.5" />}
             >
               Download
+            </Button>
+            <Button
+              variant="secondary"
+              size="sm"
+              onClick={handleBulkFavorite}
+              icon={<Star className="w-3.5 h-3.5 text-amber-400 fill-amber-400" />}
+            >
+              Favorite
+            </Button>
+            <Button
+              variant="secondary"
+              size="sm"
+              onClick={handleBulkArchive}
+              icon={<Archive className="w-3.5 h-3.5" />}
+            >
+              Archive
             </Button>
             <Button
               variant="danger"

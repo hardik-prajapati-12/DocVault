@@ -9,13 +9,27 @@ import {
   Edit3,
   MoreVertical,
   FolderOpen,
-  Upload
+  Upload,
+  CheckSquare,
+  X,
+  Download,
+  Star,
+  Archive
 } from 'lucide-react';
 import { useAppStore } from '@/store/app-store';
 import { useConfirmStore } from '@/store/confirm-store';
-import { createFolder, renameFolder, deleteFolder } from '@/services/file-service';
+import {
+  createFolder,
+  renameFolder,
+  deleteFolder,
+  bulkSoftDelete,
+  bulkArchive,
+  bulkFavorite,
+  getFileBlob
+} from '@/services/file-service';
 import { FileGrid, FileList, FloatingActionButton } from '@/components/files';
 import { Button, Modal, ContextMenu, type ContextMenuItem, type ContextMenuRef } from '@/components/ui';
+import { createZipArchive } from '@/services/compression/compression-service';
 import type { Folder, DocFile } from '@/types';
 import toast from 'react-hot-toast';
 
@@ -29,6 +43,12 @@ export const FoldersPage: React.FC = () => {
   const folders = useAppStore((s) => s.folders) ?? [];
   const documents = useAppStore((s) => s.documents) ?? [];
   const viewMode = useAppStore((s) => s.viewMode);
+
+  const selectedIds = useAppStore((s) => s.selectedIds);
+  const selectionMode = useAppStore((s) => s.selectionMode);
+  const clearSelection = useAppStore((s) => s.clearSelection);
+  const setSelectionMode = useAppStore((s) => s.setSelectionMode);
+  const selectAll = useAppStore((s) => s.selectAll);
 
   // Sync active folder with store for global file uploads
   React.useEffect(() => {
@@ -121,6 +141,49 @@ export const FoldersPage: React.FC = () => {
         }
       },
     });
+  };
+
+  const handleBulkDelete = async () => {
+    if (selectedIds.size === 0) return;
+    await bulkSoftDelete(Array.from(selectedIds));
+    toast.success(`${selectedIds.size} files moved to trash`);
+    clearSelection();
+  };
+
+  const handleBulkFavorite = async () => {
+    if (selectedIds.size === 0) return;
+    await bulkFavorite(Array.from(selectedIds), 1);
+    toast.success(`Added ${selectedIds.size} files to favorites`);
+    clearSelection();
+  };
+
+  const handleBulkArchive = async () => {
+    if (selectedIds.size === 0) return;
+    await bulkArchive(Array.from(selectedIds), 1);
+    toast.success(`Archived ${selectedIds.size} files`);
+    clearSelection();
+  };
+
+  const handleBulkDownload = async () => {
+    if (selectedIds.size === 0) return;
+    toast.loading('Preparing download...', { id: 'bulk-dl' });
+    const files: { name: string; blob: Blob }[] = [];
+    for (const id of selectedIds) {
+      const doc = documents.find((f) => f.id === id);
+      const blob = await getFileBlob(id);
+      if (doc && blob) files.push({ name: doc.name, blob });
+    }
+    if (files.length > 0) {
+      const zip = await createZipArchive(files);
+      const url = URL.createObjectURL(zip);
+      const a = document.createElement('a');
+      a.href = url;
+      a.download = `docvault-${files.length}files.zip`;
+      a.click();
+      URL.revokeObjectURL(url);
+    }
+    toast.success(`Downloaded ${files.length} files`, { id: 'bulk-dl' });
+    clearSelection();
   };
 
   // Context Menu builder helper
@@ -281,6 +344,69 @@ export const FoldersPage: React.FC = () => {
         </motion.div>
       ) : (
         <div className="space-y-8">
+          {/* Bulk Actions Bar */}
+          {selectionMode && selectedIds.size > 0 && (
+            <motion.div
+              initial={{ opacity: 0, y: -10 }}
+              animate={{ opacity: 1, y: 0 }}
+              className="flex items-center gap-3 mb-4 p-3 rounded-xl glass-strong"
+            >
+              <CheckSquare className="w-4 h-4 text-[var(--accent)]" />
+              <span className="text-sm text-[var(--text-primary)] font-medium">
+                {selectedIds.size} selected
+              </span>
+              <div className="flex gap-2 ml-auto">
+                <Button
+                  variant="secondary"
+                  size="sm"
+                  onClick={() => selectAll(currentFiles.map((f) => f.id))}
+                >
+                  Select All
+                </Button>
+                <Button
+                  variant="secondary"
+                  size="sm"
+                  onClick={handleBulkDownload}
+                  icon={<Download className="w-3.5 h-3.5" />}
+                >
+                  Download
+                </Button>
+                <Button
+                  variant="secondary"
+                  size="sm"
+                  onClick={handleBulkFavorite}
+                  icon={<Star className="w-3.5 h-3.5 text-amber-400 fill-amber-400" />}
+                >
+                  Favorite
+                </Button>
+                <Button
+                  variant="secondary"
+                  size="sm"
+                  onClick={handleBulkArchive}
+                  icon={<Archive className="w-3.5 h-3.5" />}
+                >
+                  Archive
+                </Button>
+                <Button
+                  variant="danger"
+                  size="sm"
+                  onClick={handleBulkDelete}
+                  icon={<Trash2 className="w-3.5 h-3.5" />}
+                >
+                  Delete
+                </Button>
+                <Button
+                  variant="ghost"
+                  size="sm"
+                  onClick={() => { clearSelection(); setSelectionMode(false); }}
+                  icon={<X className="w-3.5 h-3.5" />}
+                >
+                  Cancel
+                </Button>
+              </div>
+            </motion.div>
+          )}
+
           {/* Folders Section */}
           {currentFolders.length > 0 && (
             <div>

@@ -309,4 +309,32 @@ router.post('/clear-all', async (req, res) => {
   }
 });
 
+// Bulk Archive
+router.post('/bulk-archive', async (req, res) => {
+  try {
+    const { ids, isArchived } = req.body;
+    await DocFile.updateMany(
+      { id: { $in: ids } },
+      { isArchived: isArchived !== undefined ? isArchived : 1, modifiedAt: new Date() }
+    );
+    res.json({ message: 'Documents archived status updated' });
+  } catch (error) {
+    res.status(500).json({ error: error.message });
+  }
+});
+
+// Bulk Favorite
+router.post('/bulk-favorite', async (req, res) => {
+  try {
+    const { ids, isFavorite } = req.body;
+    await DocFile.updateMany(
+      { id: { $in: ids } },
+      { isFavorite: isFavorite !== undefined ? isFavorite : 1, modifiedAt: new Date() }
+    );
+    res.json({ message: 'Documents favorite status updated' });
+  } catch (error) {
+    res.status(500).json({ error: error.message });
+  }
+});
+
 export default router;

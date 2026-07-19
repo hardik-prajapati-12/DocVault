@@ -423,6 +423,30 @@ export async function bulkRestore(ids: string[]): Promise<void> {
 }
 
 /**
+ * Bulk archive multiple documents.
+ */
+export async function bulkArchive(ids: string[], isArchived: number = 1): Promise<void> {
+  await fetch('/api/documents/bulk-archive', {
+    method: 'POST',
+    headers: { 'Content-Type': 'application/json' },
+    body: JSON.stringify({ ids, isArchived }),
+  });
+  await useAppStore.getState().fetchData();
+}
+
+/**
+ * Bulk favorite multiple documents.
+ */
+export async function bulkFavorite(ids: string[], isFavorite: number = 1): Promise<void> {
+  await fetch('/api/documents/bulk-favorite', {
+    method: 'POST',
+    headers: { 'Content-Type': 'application/json' },
+    body: JSON.stringify({ ids, isFavorite }),
+  });
+  await useAppStore.getState().fetchData();
+}
+
+/**
  * Create a folder.
  */
 export async function createFolder(name: string, parentId: string | null = null): Promise<string> {
