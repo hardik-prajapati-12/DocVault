@@ -264,7 +264,7 @@ export const ArchivePage: React.FC = () => {
   };
 
   return (
-    <div className="animate-fade-in max-w-5xl mx-auto min-h-[70vh]">
+    <div className="animate-fade-in min-h-[70vh]">
       <AnimatePresence mode="wait">
         {/* SETUP SCREEN */}
         {vaultState === 'setup' && (
