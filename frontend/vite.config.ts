@@ -7,7 +7,7 @@ import path from 'path';
 
 export default defineConfig({
   optimizeDeps: {
-    include: ['jszip', 'docx-preview', 'html2canvas', 'jspdf'],
+    include: ['jszip'],
   },
   plugins: [
     react(),
