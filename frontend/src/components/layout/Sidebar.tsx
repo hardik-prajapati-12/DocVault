@@ -2,7 +2,7 @@ import React from 'react';
 import { NavLink, useLocation } from 'react-router-dom';
 import { motion, AnimatePresence } from 'framer-motion';
 import {
-  LayoutDashboard, FolderOpen, Star, Archive, Trash2,
+  LayoutDashboard, Files, Star, Archive, Trash2,
   Settings, ChevronLeft, ChevronRight, Download, Folder,
 } from 'lucide-react';
 import { useAppStore } from '@/store/app-store';
@@ -11,7 +11,7 @@ import { formatBytes } from '@/utils';
 const navItems = [
   { path: '/', label: 'Dashboard', icon: LayoutDashboard },
   { path: '/folders', label: 'Folders', icon: Folder },
-  { path: '/files', label: 'All Files', icon: FolderOpen },
+  { path: '/files', label: 'All Files', icon: Files },
   { path: '/favorites', label: 'Favorites', icon: Star },
   { path: '/archive', label: 'Archive', icon: Archive },
   { path: '/trash', label: 'Trash', icon: Trash2 },

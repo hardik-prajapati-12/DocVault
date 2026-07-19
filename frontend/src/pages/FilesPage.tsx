@@ -1,6 +1,6 @@
 import React, { useMemo } from 'react';
 import { motion } from 'framer-motion';
-import { FolderOpen, CheckSquare, Trash2, Download, X } from 'lucide-react';
+import { Files, CheckSquare, Trash2, Download, X } from 'lucide-react';
 import { useAppStore } from '@/store/app-store';
 import { FileGrid, FileList, FloatingActionButton } from '@/components/files';
 import { Button } from '@/components/ui';
@@ -132,7 +132,7 @@ const FilesPage: React.FC = () => {
       <div className="flex items-center justify-between mb-6">
         <div>
           <h1 className="text-2xl font-bold text-[var(--text-primary)] flex items-center gap-2">
-            <FolderOpen className="w-6 h-6 text-[var(--accent)]" />
+            <Files className="w-6 h-6 text-[var(--accent)]" />
             All Files
           </h1>
           <p className="text-sm text-[var(--text-secondary)] mt-1">
@@ -204,7 +204,7 @@ const FilesPage: React.FC = () => {
           className="flex flex-col items-center justify-center py-20 text-center"
         >
           <div className="w-20 h-20 rounded-2xl bg-[var(--accent-dim)] flex items-center justify-center mb-4">
-            <FolderOpen className="w-10 h-10 text-[var(--accent)]" />
+            <Files className="w-10 h-10 text-[var(--accent)]" />
           </div>
           <h3 className="text-lg font-semibold text-[var(--text-primary)] mb-1">
             {searchQuery ? 'No files found' : 'No files yet'}

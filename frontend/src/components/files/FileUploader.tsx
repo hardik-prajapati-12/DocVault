@@ -10,6 +10,7 @@ import type { UploadProgress } from '@/types';
 export const FileUploader: React.FC = () => {
   const isOpen = useAppStore((s) => s.uploadModalOpen);
   const setOpen = useAppStore((s) => s.setUploadModalOpen);
+  const activeFolderId = useAppStore((s) => s.activeFolderId);
   const [isDragging, setIsDragging] = useState(false);
   const [uploads, setUploads] = useState<UploadProgress[]>([]);
   const [isUploading, setIsUploading] = useState(false);
@@ -32,7 +33,7 @@ export const FileUploader: React.FC = () => {
     if (files.length === 0) return;
     setIsUploading(true);
     setUploads([]);
-    await uploadFiles(files, null, handleProgress);
+    await uploadFiles(files, activeFolderId, handleProgress);
     setIsUploading(false);
   };
 

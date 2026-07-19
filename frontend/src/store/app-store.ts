@@ -32,6 +32,7 @@ interface AppState {
   downloadDialogFileId: string | null;
   settingsOpen: boolean;
   renameDialogFileId: string | null;
+  activeFolderId: string | null;
 
   // Cloud Sync
   syncProvider: 'none' | 'webdav';
@@ -68,6 +69,7 @@ interface AppState {
     autoSync: boolean;
   }) => void;
   setLastSyncedAt: (timestamp: number | null) => void;
+  setActiveFolderId: (id: string | null) => void;
 
   // MongoDB Server-side Data
   documents: DocFile[];
@@ -102,6 +104,7 @@ export const useAppStore = create<AppState>()(
       webdavPassword: '',
       autoSync: false,
       lastSyncedAt: null,
+      activeFolderId: null,
 
       documents: [],
       folders: [],
@@ -134,6 +137,7 @@ export const useAppStore = create<AppState>()(
       setRenameDialogFileId: (id) => set({ renameDialogFileId: id }),
       setSyncSettings: (settings) => set({ ...settings }),
       setLastSyncedAt: (lastSyncedAt) => set({ lastSyncedAt }),
+      setActiveFolderId: (activeFolderId) => set({ activeFolderId }),
       setDocuments: (documents) => set({ documents }),
       setFolders: (folders) => set({ folders }),
       fetchData: async () => {

@@ -8,7 +8,8 @@ import {
   Trash2,
   Edit3,
   MoreVertical,
-  FolderOpen
+  FolderOpen,
+  Upload
 } from 'lucide-react';
 import { useAppStore } from '@/store/app-store';
 import { useConfirmStore } from '@/store/confirm-store';
@@ -22,10 +23,18 @@ export const FoldersPage: React.FC = () => {
   const { folderId } = useParams<{ folderId?: string }>();
   const navigate = useNavigate();
   const confirm = useConfirmStore();
+  const setActiveFolderId = useAppStore((s) => s.setActiveFolderId);
+  const setUploadModalOpen = useAppStore((s) => s.setUploadModalOpen);
 
   const folders = useAppStore((s) => s.folders) ?? [];
   const documents = useAppStore((s) => s.documents) ?? [];
   const viewMode = useAppStore((s) => s.viewMode);
+
+  // Sync active folder with store for global file uploads
+  React.useEffect(() => {
+    setActiveFolderId(folderId || null);
+    return () => setActiveFolderId(null);
+  }, [folderId, setActiveFolderId]);
 
   // Modal States
   const [isCreateOpen, setIsCreateOpen] = useState(false);
@@ -42,10 +51,12 @@ export const FoldersPage: React.FC = () => {
   }, [folders, currentParentId]);
 
   const currentFiles = useMemo(() => {
+    // Only display files inside a folder. Do not display files at root Folders view.
+    if (!folderId) return [];
     return documents.filter(
       (d) => d.folderId === currentParentId && d.isDeleted === 0 && d.isArchived === 0
     );
-  }, [documents, currentParentId]);
+  }, [documents, currentParentId, folderId]);
 
   // Active folder details
   const currentFolder = useMemo(() => {
@@ -209,13 +220,23 @@ export const FoldersPage: React.FC = () => {
           ))}
         </div>
 
-        <Button
-          onClick={() => setIsCreateOpen(true)}
-          icon={<FolderPlus className="w-4 h-4" />}
-          className="self-start sm:self-auto"
-        >
-          New Folder
-        </Button>
+        <div className="flex gap-2.5 self-start sm:self-auto">
+          {folderId && (
+            <Button
+              onClick={() => setUploadModalOpen(true)}
+              icon={<Upload className="w-4 h-4" />}
+              variant="secondary"
+            >
+              Upload Files
+            </Button>
+          )}
+          <Button
+            onClick={() => setIsCreateOpen(true)}
+            icon={<FolderPlus className="w-4 h-4" />}
+          >
+            New Folder
+          </Button>
+        </div>
       </div>
 
       {/* Main Content Area */}
@@ -236,9 +257,27 @@ export const FoldersPage: React.FC = () => {
               ? 'Upload files or drag folders here to add them to this directory.'
               : 'Create a new folder or drag directories directly onto this page to start organizing.'}
           </p>
-          <Button onClick={() => setIsCreateOpen(true)} icon={<FolderPlus className="w-4 h-4" />}>
-            Create Folder
-          </Button>
+          {currentFolder ? (
+            <div className="flex gap-3 justify-center">
+              <Button
+                onClick={() => setIsCreateOpen(true)}
+                icon={<FolderPlus className="w-4 h-4" />}
+                variant="secondary"
+              >
+                Create Folder
+              </Button>
+              <Button
+                onClick={() => setUploadModalOpen(true)}
+                icon={<Upload className="w-4 h-4" />}
+              >
+                Upload Files
+              </Button>
+            </div>
+          ) : (
+            <Button onClick={() => setIsCreateOpen(true)} icon={<FolderPlus className="w-4 h-4" />}>
+              Create Folder
+            </Button>
+          )}
         </motion.div>
       ) : (
         <div className="space-y-8">
