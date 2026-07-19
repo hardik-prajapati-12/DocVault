@@ -223,15 +223,31 @@ router.put('/:id/favorite', async (req, res) => {
   }
 });
 
-// Update folder archive status
+// Recursive folder archive/unarchive helper
+async function archiveFolderAndContents(folderId, isArchived) {
+  // Update the folder itself
+  await Folder.findOneAndUpdate(
+    { id: folderId },
+    { isArchived, modifiedAt: new Date() }
+  );
+  // Update all documents inside this folder
+  await DocFile.updateMany(
+    { folderId },
+    { isArchived, modifiedAt: new Date() }
+  );
+  // Find child folders and archive recursively
+  const subFolders = await Folder.find({ parentId: folderId });
+  for (const sub of subFolders) {
+    await archiveFolderAndContents(sub.id, isArchived);
+  }
+}
+
+// Update folder archive status (recursive)
 router.put('/:id/archive', async (req, res) => {
   try {
     const { isArchived } = req.body;
-    const folder = await Folder.findOneAndUpdate(
-      { id: req.params.id },
-      { isArchived, modifiedAt: new Date() },
-      { new: true }
-    );
+    await archiveFolderAndContents(req.params.id, isArchived);
+    const folder = await Folder.findOne({ id: req.params.id });
     if (!folder) return res.status(404).json({ error: 'Folder not found' });
     res.json(folder);
   } catch (error) {

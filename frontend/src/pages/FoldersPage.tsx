@@ -75,19 +75,28 @@ export const FoldersPage: React.FC = () => {
   }, [folders, currentParentId]);
 
   const isFolderDeleted = currentFolder?.isDeleted === 1;
+  const isFolderArchived = currentFolder?.isArchived === 1;
 
   // Filter folders and files matching active parent
   const currentFolders = useMemo(() => {
-    return folders.filter((f) => f.parentId === currentParentId && (isFolderDeleted ? f.isDeleted === 1 : f.isDeleted !== 1 && f.isArchived !== 1));
-  }, [folders, currentParentId, isFolderDeleted]);
+    return folders.filter((f) => {
+      if (f.parentId !== currentParentId) return false;
+      if (isFolderDeleted) return f.isDeleted === 1;
+      if (isFolderArchived) return f.isDeleted !== 1;
+      return f.isDeleted !== 1 && f.isArchived !== 1;
+    });
+  }, [folders, currentParentId, isFolderDeleted, isFolderArchived]);
 
   const currentFiles = useMemo(() => {
     // Only display files inside a folder. Do not display files at root Folders view.
     if (!folderId) return [];
-    return documents.filter(
-      (d) => d.folderId === currentParentId && (isFolderDeleted ? d.isDeleted === 1 : d.isDeleted === 0 && d.isArchived === 0)
-    );
-  }, [documents, currentParentId, folderId, isFolderDeleted]);
+    return documents.filter((d) => {
+      if (d.folderId !== currentParentId) return false;
+      if (isFolderDeleted) return d.isDeleted === 1;
+      if (isFolderArchived) return d.isDeleted === 0;
+      return d.isDeleted === 0 && d.isArchived === 0;
+    });
+  }, [documents, currentParentId, folderId, isFolderDeleted, isFolderArchived]);
 
   const currentItems = useMemo(() => {
     return [
@@ -479,7 +488,7 @@ export const FoldersPage: React.FC = () => {
               {selectionMode ? 'Close Selection' : (folderId ? 'Select Files' : 'Select Folders')}
             </Button>
           )}
-          {!isFolderDeleted && folderId && (
+          {!isFolderDeleted && !isFolderArchived && folderId && (
             <Button
               onClick={() => setUploadModalOpen(true)}
               icon={<Upload className="w-4 h-4" />}
@@ -488,7 +497,7 @@ export const FoldersPage: React.FC = () => {
               Upload Files
             </Button>
           )}
-          {!isFolderDeleted && (
+          {!isFolderDeleted && !isFolderArchived && (
             <Button
               onClick={() => setIsCreateOpen(true)}
               icon={<FolderPlus className="w-4 h-4" />}

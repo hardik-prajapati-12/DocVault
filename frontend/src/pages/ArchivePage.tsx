@@ -64,8 +64,24 @@ export const ArchivePage: React.FC = () => {
   const [showPassword, setShowPassword] = useState(false);
   const [showConfirmPassword, setShowConfirmPassword] = useState(false);
 
-  const archivedFolders = useMemo(() => folders.filter((f) => f.isDeleted !== 1 && f.isArchived === 1), [folders]);
-  const archivedFiles = useMemo(() => documents.filter((d) => d.isDeleted === 0 && d.isArchived === 1), [documents]);
+  const archivedFolders = useMemo(() => folders.filter((f) => {
+    if (f.isDeleted === 1 || f.isArchived !== 1) return false;
+    // Only show top-level archived folders (whose parent is not also archived)
+    if (f.parentId) {
+      const parent = folders.find((p) => p.id === f.parentId);
+      if (parent && parent.isArchived === 1) return false;
+    }
+    return true;
+  }), [folders]);
+  const archivedFiles = useMemo(() => documents.filter((d) => {
+    if (d.isDeleted !== 0 || d.isArchived !== 1) return false;
+    // Only show files not inside an archived folder
+    if (d.folderId) {
+      const parentFolder = folders.find((f) => f.id === d.folderId);
+      if (parentFolder && parentFolder.isArchived === 1) return false;
+    }
+    return true;
+  }), [documents, folders]);
 
   const displayFolders = useMemo(() => {
     if (searchQuery.trim()) {
