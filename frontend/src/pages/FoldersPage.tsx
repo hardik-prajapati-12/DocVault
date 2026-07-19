@@ -382,15 +382,23 @@ export const FoldersPage: React.FC = () => {
       {
         label: folder.isArchived === 1 ? 'Unarchive' : 'Archive',
         icon: <Archive className="w-4 h-4" />,
-        onClick: async () => {
+        onClick: () => {
           const nextVal = folder.isArchived === 1 ? 0 : 1;
-          await fetch(`/api/folders/${folder.id}/archive`, {
-            method: 'PUT',
-            headers: { 'Content-Type': 'application/json' },
-            body: JSON.stringify({ isArchived: nextVal }),
+          confirm.triggerConfirm({
+            title: nextVal === 1 ? 'Archive Folder' : 'Unarchive Folder',
+            message: `Are you sure you want to ${nextVal === 1 ? 'archive' : 'unarchive'} "${folder.name}"?${nextVal === 1 ? ' All files and folders inside will be archived as well.' : ' All files and folders inside will be unarchived as well.'}`,
+            confirmText: nextVal === 1 ? 'Archive' : 'Unarchive',
+            variant: 'primary',
+            onConfirm: async () => {
+              await fetch(`/api/folders/${folder.id}/archive`, {
+                method: 'PUT',
+                headers: { 'Content-Type': 'application/json' },
+                body: JSON.stringify({ isArchived: nextVal }),
+              });
+              toast.success(nextVal === 1 ? 'Archived' : 'Unarchived');
+              await useAppStore.getState().fetchData();
+            },
           });
-          toast.success(nextVal === 1 ? 'Archived' : 'Unarchived');
-          await useAppStore.getState().fetchData();
         },
         divider: true,
       },

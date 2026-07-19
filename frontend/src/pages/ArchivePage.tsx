@@ -793,14 +793,22 @@ export const ArchivePage: React.FC = () => {
                   {
                     label: 'Unarchive',
                     icon: <Archive className="w-4 h-4" />,
-                    onClick: async () => {
-                      await fetch(`/api/folders/${folder.id}/archive`, {
-                        method: 'PUT',
-                        headers: { 'Content-Type': 'application/json' },
-                        body: JSON.stringify({ isArchived: 0 }),
+                    onClick: () => {
+                      confirm.triggerConfirm({
+                        title: 'Unarchive Folder',
+                        message: `Are you sure you want to unarchive "${folder.name}"? All files and folders inside will be unarchived and moved back to the main view.`,
+                        confirmText: 'Unarchive',
+                        variant: 'primary',
+                        onConfirm: async () => {
+                          await fetch(`/api/folders/${folder.id}/archive`, {
+                            method: 'PUT',
+                            headers: { 'Content-Type': 'application/json' },
+                            body: JSON.stringify({ isArchived: 0 }),
+                          });
+                          toast.success('Unarchived folder');
+                          await useAppStore.getState().fetchData();
+                        },
                       });
-                      toast.success('Unarchived folder');
-                      await useAppStore.getState().fetchData();
                     },
                     divider: true,
                   },

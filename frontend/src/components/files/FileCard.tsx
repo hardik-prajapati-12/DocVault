@@ -60,6 +60,25 @@ export const FileCard: React.FC<FileCardProps> = ({ file, isTrash = false }) => 
     });
   };
 
+  const handleArchiveToggle = () => {
+    const isArchived = file.isArchived === 1;
+    confirm.triggerConfirm({
+      title: isArchived ? 'Unarchive File' : 'Archive File',
+      message: `Are you sure you want to ${isArchived ? 'unarchive' : 'archive'} "${file.name}"?${!isArchived ? ' It will be moved to the secure archive vault.' : ' It will be moved back to the main view.'}`,
+      confirmText: isArchived ? 'Unarchive' : 'Archive',
+      variant: 'primary',
+      onConfirm: async () => {
+        if (isArchived) {
+          await unarchiveDocument(file.id);
+          toast.success('Unarchived');
+        } else {
+          await archiveDocument(file.id);
+          toast.success('Archived');
+        }
+      },
+    });
+  };
+
   const contextMenuItems = useMemo<ContextMenuItem[]>(() => {
     if (isTrash) {
       return [
@@ -73,15 +92,7 @@ export const FileCard: React.FC<FileCardProps> = ({ file, isTrash = false }) => 
       { label: 'Rename', icon: <Edit3 />, onClick: () => setRenameDialogFileId(file.id), divider: true },
       { label: 'Duplicate', icon: <Copy />, onClick: async () => { await duplicateDocument(file.id); toast.success('Duplicated'); } },
       { label: file.isFavorite === 1 ? 'Unfavorite' : 'Favorite', icon: <Star />, onClick: () => { toggleFavorite(file.id); toast.success(file.isFavorite === 1 ? 'Removed from favorites' : 'Added to favorites'); } },
-      { label: file.isArchived === 1 ? 'Unarchive' : 'Archive', icon: <Archive />, onClick: async () => {
-        if (file.isArchived === 1) {
-          await unarchiveDocument(file.id);
-          toast.success('Unarchived');
-        } else {
-          await archiveDocument(file.id);
-          toast.success('Archived');
-        }
-      }},
+      { label: file.isArchived === 1 ? 'Unarchive' : 'Archive', icon: <Archive />, onClick: handleArchiveToggle },
       { label: 'Move to Trash', icon: <Trash2 />, onClick: handleSoftDelete, variant: 'danger', divider: true },
     ];
   }, [file, isTrash, setPreviewFileId, setDownloadDialogFileId, setRenameDialogFileId]);

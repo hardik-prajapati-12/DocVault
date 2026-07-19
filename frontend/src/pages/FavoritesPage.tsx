@@ -244,14 +244,22 @@ const FavoritesPage: React.FC = () => {
       {
         label: 'Archive',
         icon: <Archive className="w-4 h-4" />,
-        onClick: async () => {
-          await fetch(`/api/folders/${folder.id}/archive`, {
-            method: 'PUT',
-            headers: { 'Content-Type': 'application/json' },
-            body: JSON.stringify({ isArchived: 1 }),
+        onClick: () => {
+          confirm.triggerConfirm({
+            title: 'Archive Folder',
+            message: `Are you sure you want to archive "${folder.name}"? All files and folders inside will be archived as well. They will be moved to the secure archive vault.`,
+            confirmText: 'Archive',
+            variant: 'primary',
+            onConfirm: async () => {
+              await fetch(`/api/folders/${folder.id}/archive`, {
+                method: 'PUT',
+                headers: { 'Content-Type': 'application/json' },
+                body: JSON.stringify({ isArchived: 1 }),
+              });
+              toast.success('Archived folder');
+              await useAppStore.getState().fetchData();
+            },
           });
-          toast.success('Archived folder');
-          await useAppStore.getState().fetchData();
         },
         divider: true,
       },

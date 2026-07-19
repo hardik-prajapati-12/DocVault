@@ -70,9 +70,9 @@ const FileListRow: React.FC<{ file: DocFile; isTrash: boolean }> = ({ file, isTr
     const isArchived = file.isArchived === 1;
     confirm.triggerConfirm({
       title: isArchived ? 'Unarchive File' : 'Archive File',
-      message: `Are you sure you want to ${isArchived ? 'unarchive' : 'archive'} "${file.name}"?`,
+      message: `Are you sure you want to ${isArchived ? 'unarchive' : 'archive'} "${file.name}"?${!isArchived ? ' It will be moved to the secure archive vault.' : ' It will be moved back to the main view.'}`,
       confirmText: isArchived ? 'Unarchive' : 'Archive',
-      variant: 'success',
+      variant: 'primary',
       onConfirm: async () => {
         if (isArchived) {
           await unarchiveDocument(file.id);
