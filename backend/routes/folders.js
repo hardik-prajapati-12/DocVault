@@ -47,23 +47,43 @@ router.put('/:id', async (req, res) => {
   }
 });
 
-// Recursive folder deletion helper
-async function deleteFolderAndContents(folderId) {
-  // Move documents in this folder to root
-  await DocFile.updateMany({ folderId }, { folderId: null });
+// Recursive folder soft deletion helper
+async function softDeleteFolderAndContents(folderId, isDeleted) {
+  const deletedAt = isDeleted === 1 ? new Date() : null;
+  // Soft-delete the folder itself
+  await Folder.findOneAndUpdate(
+    { id: folderId },
+    { isDeleted, deletedAt, modifiedAt: new Date() }
+  );
+  // Soft-delete all documents inside this folder
+  await DocFile.updateMany(
+    { folderId },
+    { isDeleted, deletedAt, modifiedAt: new Date() }
+  );
+  // Find child folders and soft-delete recursively
+  const subFolders = await Folder.find({ parentId: folderId });
+  for (const sub of subFolders) {
+    await softDeleteFolderAndContents(sub.id, isDeleted);
+  }
+}
+
+// Recursive folder permanent deletion helper
+async function permanentDeleteFolderAndContents(folderId) {
   // Find child folders
   const subFolders = await Folder.find({ parentId: folderId });
   for (const sub of subFolders) {
-    await deleteFolderAndContents(sub.id);
+    await permanentDeleteFolderAndContents(sub.id);
   }
-  // Delete the folder itself
+  // Hard-delete the files inside this folder
+  await DocFile.deleteMany({ folderId });
+  // Hard-delete the folder itself
   await Folder.deleteOne({ id: folderId });
 }
 
-// Delete folder
+// Delete folder (Soft delete)
 router.delete('/:id', async (req, res) => {
   try {
-    await deleteFolderAndContents(req.params.id);
+    await softDeleteFolderAndContents(req.params.id, 1);
     res.json({ message: 'Folder deleted successfully' });
   } catch (error) {
     res.status(500).json({ error: error.message });
@@ -94,14 +114,40 @@ router.post('/import', async (req, res) => {
   }
 });
 
-// Bulk Delete folders
+// Bulk Delete folders (Soft delete)
 router.post('/bulk-delete', async (req, res) => {
   try {
     const { ids } = req.body;
     for (const id of ids) {
-      await deleteFolderAndContents(id);
+      await softDeleteFolderAndContents(id, 1);
     }
     res.json({ message: 'Folders deleted successfully' });
+  } catch (error) {
+    res.status(500).json({ error: error.message });
+  }
+});
+
+// Bulk Restore folders
+router.post('/bulk-restore', async (req, res) => {
+  try {
+    const { ids } = req.body;
+    for (const id of ids) {
+      await softDeleteFolderAndContents(id, 0);
+    }
+    res.json({ message: 'Folders restored successfully' });
+  } catch (error) {
+    res.status(500).json({ error: error.message });
+  }
+});
+
+// Bulk Delete folders permanently
+router.post('/bulk-delete-permanent', async (req, res) => {
+  try {
+    const { ids } = req.body;
+    for (const id of ids) {
+      await permanentDeleteFolderAndContents(id);
+    }
+    res.json({ message: 'Folders permanently deleted' });
   } catch (error) {
     res.status(500).json({ error: error.message });
   }

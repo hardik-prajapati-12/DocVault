@@ -258,6 +258,7 @@ router.post('/empty-trash', async (req, res) => {
       }
     }
     await DocFile.deleteMany({ isDeleted: 1 });
+    await Folder.deleteMany({ isDeleted: 1 });
     res.json({ message: 'Trash emptied' });
   } catch (error) {
     res.status(500).json({ error: error.message });

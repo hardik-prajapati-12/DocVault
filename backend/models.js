@@ -4,6 +4,8 @@ const FolderSchema = new mongoose.Schema({
   id: { type: String, required: true, unique: true },
   name: { type: String, required: true },
   parentId: { type: String, default: null },
+  isDeleted: { type: Number, enum: [0, 1], default: 0 },
+  deletedAt: { type: Date, default: null },
   createdAt: { type: Date, default: Date.now },
   modifiedAt: { type: Date, default: Date.now }
 });

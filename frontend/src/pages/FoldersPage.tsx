@@ -66,18 +66,26 @@ export const FoldersPage: React.FC = () => {
 
   const currentParentId = folderId || null;
 
+  // Active folder details
+  const currentFolder = useMemo(() => {
+    if (!currentParentId) return null;
+    return folders.find((f) => f.id === currentParentId) || null;
+  }, [folders, currentParentId]);
+
+  const isFolderDeleted = currentFolder?.isDeleted === 1;
+
   // Filter folders and files matching active parent
   const currentFolders = useMemo(() => {
-    return folders.filter((f) => f.parentId === currentParentId);
-  }, [folders, currentParentId]);
+    return folders.filter((f) => f.parentId === currentParentId && (isFolderDeleted ? f.isDeleted === 1 : f.isDeleted !== 1));
+  }, [folders, currentParentId, isFolderDeleted]);
 
   const currentFiles = useMemo(() => {
     // Only display files inside a folder. Do not display files at root Folders view.
     if (!folderId) return [];
     return documents.filter(
-      (d) => d.folderId === currentParentId && d.isDeleted === 0 && d.isArchived === 0
+      (d) => d.folderId === currentParentId && (isFolderDeleted ? d.isDeleted === 1 : d.isDeleted === 0 && d.isArchived === 0)
     );
-  }, [documents, currentParentId, folderId]);
+  }, [documents, currentParentId, folderId, isFolderDeleted]);
 
   const currentItems = useMemo(() => {
     return [
@@ -85,12 +93,6 @@ export const FoldersPage: React.FC = () => {
       ...currentFiles.map((d) => ({ id: d.id, type: 'file' })),
     ];
   }, [currentFolders, currentFiles]);
-
-  // Active folder details
-  const currentFolder = useMemo(() => {
-    if (!currentParentId) return null;
-    return folders.find((f) => f.id === currentParentId) || null;
-  }, [folders, currentParentId]);
 
   // Breadcrumbs calculation
   const breadcrumbs = useMemo(() => {
@@ -130,12 +132,12 @@ export const FoldersPage: React.FC = () => {
     }
   };
 
-  // Delete Folder (Files inside folder will be moved to root)
+  // Delete Folder (Move folder and its files to trash)
   const handleDeleteFolder = (folder: Folder) => {
     confirm.triggerConfirm({
-      title: 'Delete Folder',
-      message: `Are you sure you want to delete "${folder.name}"? The files inside this folder will be moved to the root files tab.`,
-      confirmText: 'Delete Folder',
+      title: 'Move to Trash',
+      message: `Are you sure you want to move "${folder.name}" to the trash? All files and folders inside will be moved to the trash as well.`,
+      confirmText: 'Move to Trash',
       variant: 'danger',
       onConfirm: async () => {
         try {
@@ -274,7 +276,7 @@ export const FoldersPage: React.FC = () => {
         },
       },
       {
-        label: 'Delete',
+        label: 'Move to Trash',
         icon: <Trash2 className="w-4 h-4" />,
         onClick: () => handleDeleteFolder(folder),
         variant: 'danger',
@@ -393,7 +395,7 @@ export const FoldersPage: React.FC = () => {
               {selectionMode ? 'Close Selection' : (folderId ? 'Select Files' : 'Select Folders')}
             </Button>
           )}
-          {folderId && (
+          {!isFolderDeleted && folderId && (
             <Button
               onClick={() => setUploadModalOpen(true)}
               icon={<Upload className="w-4 h-4" />}
@@ -402,12 +404,14 @@ export const FoldersPage: React.FC = () => {
               Upload Files
             </Button>
           )}
-          <Button
-            onClick={() => setIsCreateOpen(true)}
-            icon={<FolderPlus className="w-4 h-4" />}
-          >
-            New Folder
-          </Button>
+          {!isFolderDeleted && (
+            <Button
+              onClick={() => setIsCreateOpen(true)}
+              icon={<FolderPlus className="w-4 h-4" />}
+            >
+              New Folder
+            </Button>
+          )}
         </div>
       </div>
 

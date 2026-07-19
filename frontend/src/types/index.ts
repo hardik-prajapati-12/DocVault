@@ -24,6 +24,8 @@ export interface Folder {
   id: string;
   name: string;
   parentId: string | null;
+  isDeleted?: number;
+  deletedAt?: Date | null;
   createdAt: Date;
   modifiedAt: Date;
 }

@@ -162,6 +162,7 @@ export const useAppStore = create<AppState>()(
               ...f,
               createdAt: new Date(f.createdAt),
               modifiedAt: new Date(f.modifiedAt),
+              deletedAt: f.deletedAt ? new Date(f.deletedAt) : null,
             }));
 
             set({ documents, folders });

@@ -56,7 +56,7 @@ export const DashboardCharts: React.FC = () => {
   const allDocs = useAppStore((s) => s.documents);
 
   const [storage, setStorage] = React.useState({ used: 0, total: 0 });
-  React.useEffect(() => { getStorageEstimate().then(setStorage); }, [allDocs?.length]);
+  React.useEffect(() => { getStorageEstimate().then(setStorage); }, [allDocs]);
 
   const stats = useMemo(() => {
     if (!allDocs) return null;

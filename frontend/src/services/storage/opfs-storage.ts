@@ -5,6 +5,7 @@
  */
 
 import { db } from '@/db/db';
+import { useAppStore } from '@/store/app-store';
 
 const OPFS_ROOT_DIR = 'docvault-files';
 
@@ -130,7 +131,7 @@ export async function deleteFile(id: string): Promise<void> {
 export async function getStorageEstimate(): Promise<{ used: number; total: number }> {
   try {
     const estimate = await navigator.storage.estimate();
-    const docs = await db.documents.toArray();
+    const docs = useAppStore.getState().documents || [];
     const logicalUsed = docs.reduce((sum, doc) => sum + doc.size, 0);
     return {
       used: logicalUsed,
