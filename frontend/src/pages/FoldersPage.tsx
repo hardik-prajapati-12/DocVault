@@ -188,32 +188,38 @@ export const FoldersPage: React.FC = () => {
     return Array.from(new Set(fileIds));
   };
 
-  const handleBulkDelete = async () => {
+  const handleBulkDelete = () => {
     if (selectedIds.size === 0) return;
     const selectedArray = Array.from(selectedIds);
     const folderIds = selectedArray.filter((id) => folders.some((f) => f.id === id));
     const fileIds = selectedArray.filter((id) => documents.some((d) => d.id === id));
+    const totalCount = folderIds.length + fileIds.length;
 
-    try {
-      if (folderIds.length > 0) {
-        await fetch('/api/folders/bulk-delete', {
-          method: 'POST',
-          headers: { 'Content-Type': 'application/json' },
-          body: JSON.stringify({ ids: folderIds }),
-        });
-      }
-
-      if (fileIds.length > 0) {
-        await bulkSoftDelete(fileIds);
-      }
-
-      toast.success('Deleted selected folders and files');
-    } catch (err: any) {
-      toast.error(err.message || 'Failed to delete some items');
-    }
-
-    clearSelection();
-    await useAppStore.getState().fetchData();
+    confirm.triggerConfirm({
+      title: 'Move to Trash',
+      message: `Are you sure you want to move ${totalCount} selected item${totalCount > 1 ? 's' : ''} to the trash?${folderIds.length > 0 ? ' All files inside the selected folders will also be moved to trash.' : ''}`,
+      confirmText: 'Move to Trash',
+      variant: 'danger',
+      onConfirm: async () => {
+        try {
+          if (folderIds.length > 0) {
+            await fetch('/api/folders/bulk-delete', {
+              method: 'POST',
+              headers: { 'Content-Type': 'application/json' },
+              body: JSON.stringify({ ids: folderIds }),
+            });
+          }
+          if (fileIds.length > 0) {
+            await bulkSoftDelete(fileIds);
+          }
+          toast.success('Moved selected items to trash');
+        } catch (err: any) {
+          toast.error(err.message || 'Failed to delete some items');
+        }
+        clearSelection();
+        await useAppStore.getState().fetchData();
+      },
+    });
   };
 
   const handleBulkFavorite = async () => {
@@ -228,16 +234,36 @@ export const FoldersPage: React.FC = () => {
     clearSelection();
   };
 
-  const handleBulkArchive = async () => {
-    const fileIds = getFilesFromFoldersAndFiles(selectedIds);
-    if (fileIds.length === 0) {
-      toast.error('No files found to archive');
-      clearSelection();
-      return;
-    }
-    await bulkArchive(fileIds, 1);
-    toast.success(`Archived ${fileIds.length} files`);
-    clearSelection();
+  const handleBulkArchive = () => {
+    if (selectedIds.size === 0) return;
+    const selectedArray = Array.from(selectedIds);
+    const folderIds = selectedArray.filter((id) => folders.some((f) => f.id === id));
+    const fileIds = selectedArray.filter((id) => documents.some((d) => d.id === id));
+    const totalCount = folderIds.length + fileIds.length;
+
+    confirm.triggerConfirm({
+      title: 'Archive Items',
+      message: `Are you sure you want to archive ${totalCount} selected item${totalCount > 1 ? 's' : ''}?${folderIds.length > 0 ? ' All files inside the selected folders will also be archived.' : ''} They will be moved to the secure archive vault.`,
+      confirmText: 'Archive',
+      variant: 'primary',
+      onConfirm: async () => {
+        if (folderIds.length > 0) {
+          for (const id of folderIds) {
+            await fetch(`/api/folders/${id}/archive`, {
+              method: 'PUT',
+              headers: { 'Content-Type': 'application/json' },
+              body: JSON.stringify({ isArchived: 1 }),
+            });
+          }
+        }
+        if (fileIds.length > 0) {
+          await bulkArchive(fileIds, 1);
+        }
+        toast.success(`Archived ${totalCount} items`);
+        clearSelection();
+        await useAppStore.getState().fetchData();
+      },
+    });
   };
 
   const handleBulkDownload = async () => {

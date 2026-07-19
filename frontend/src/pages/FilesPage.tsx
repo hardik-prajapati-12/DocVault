@@ -2,6 +2,7 @@ import React, { useMemo } from 'react';
 import { motion } from 'framer-motion';
 import { Files, CheckSquare, Trash2, Download, X, Archive, Star } from 'lucide-react';
 import { useAppStore } from '@/store/app-store';
+import { useConfirmStore } from '@/store/confirm-store';
 import { FileGrid, FileList, FloatingActionButton } from '@/components/files';
 import { Button } from '@/components/ui';
 import { bulkSoftDelete, bulkArchive, bulkFavorite } from '@/services/file-service';
@@ -95,11 +96,21 @@ const FilesPage: React.FC = () => {
     return result;
   }, [allFiles, searchQuery, activeFilter, sortOption]);
 
-  const handleBulkDelete = async () => {
+  const confirm = useConfirmStore();
+
+  const handleBulkDelete = () => {
     if (selectedIds.size === 0) return;
-    await bulkSoftDelete(Array.from(selectedIds));
-    toast.success(`${selectedIds.size} files moved to trash`);
-    clearSelection();
+    confirm.triggerConfirm({
+      title: 'Move to Trash',
+      message: `Are you sure you want to move ${selectedIds.size} selected file${selectedIds.size > 1 ? 's' : ''} to the trash?`,
+      confirmText: 'Move to Trash',
+      variant: 'danger',
+      onConfirm: async () => {
+        await bulkSoftDelete(Array.from(selectedIds));
+        toast.success(`${selectedIds.size} files moved to trash`);
+        clearSelection();
+      },
+    });
   };
 
   const handleBulkFavorite = async () => {
@@ -109,11 +120,19 @@ const FilesPage: React.FC = () => {
     clearSelection();
   };
 
-  const handleBulkArchive = async () => {
+  const handleBulkArchive = () => {
     if (selectedIds.size === 0) return;
-    await bulkArchive(Array.from(selectedIds), 1);
-    toast.success(`Archived ${selectedIds.size} files`);
-    clearSelection();
+    confirm.triggerConfirm({
+      title: 'Archive Files',
+      message: `Are you sure you want to archive ${selectedIds.size} selected file${selectedIds.size > 1 ? 's' : ''}? They will be moved to the secure archive vault.`,
+      confirmText: 'Archive',
+      variant: 'primary',
+      onConfirm: async () => {
+        await bulkArchive(Array.from(selectedIds), 1);
+        toast.success(`Archived ${selectedIds.size} files`);
+        clearSelection();
+      },
+    });
   };
 
   const handleBulkDownload = async () => {
