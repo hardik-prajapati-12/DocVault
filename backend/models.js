@@ -6,6 +6,8 @@ const FolderSchema = new mongoose.Schema({
   parentId: { type: String, default: null },
   isDeleted: { type: Number, enum: [0, 1], default: 0 },
   deletedAt: { type: Date, default: null },
+  isFavorite: { type: Number, enum: [0, 1], default: 0 },
+  isArchived: { type: Number, enum: [0, 1], default: 0 },
   createdAt: { type: Date, default: Date.now },
   modifiedAt: { type: Date, default: Date.now }
 });

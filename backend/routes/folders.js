@@ -153,6 +153,92 @@ router.post('/bulk-delete-permanent', async (req, res) => {
   }
 });
 
+// Recursive folder duplication helper
+async function duplicateFolderAndContents(folderId, newParentId, suffix = ' copy') {
+  const original = await Folder.findOne({ id: folderId });
+  if (!original) return null;
+
+  const newFolderId = 'fld_' + Math.random().toString(36).substring(2, 15);
+  const duplicatedFolder = new Folder({
+    id: newFolderId,
+    name: original.name + suffix,
+    parentId: newParentId,
+    isFavorite: original.isFavorite,
+    isArchived: original.isArchived,
+    isDeleted: original.isDeleted,
+    createdAt: new Date(),
+    modifiedAt: new Date()
+  });
+  await duplicatedFolder.save();
+
+  // Duplicate files inside this folder
+  const files = await DocFile.find({ folderId });
+  for (const file of files) {
+    const newFileId = 'doc_' + Math.random().toString(36).substring(2, 15);
+    const duplicatedFile = new DocFile({
+      ...file.toObject(),
+      _id: undefined, // Mongoose generates a new object ID
+      id: newFileId,
+      name: file.name,
+      folderId: newFolderId,
+      createdAt: new Date(),
+      modifiedAt: new Date(),
+      uploadedAt: new Date()
+    });
+    await duplicatedFile.save();
+  }
+
+  // Duplicate subfolders recursively
+  const subFolders = await Folder.find({ parentId: folderId });
+  for (const sub of subFolders) {
+    await duplicateFolderAndContents(sub.id, newFolderId, ''); // No suffix recursively
+  }
+
+  return newFolderId;
+}
+
+// Duplicate folder
+router.post('/:id/duplicate', async (req, res) => {
+  try {
+    const newId = await duplicateFolderAndContents(req.params.id, null);
+    res.status(201).json({ message: 'Folder duplicated successfully', id: newId });
+  } catch (error) {
+    res.status(500).json({ error: error.message });
+  }
+});
+
+// Update folder favorite status
+router.put('/:id/favorite', async (req, res) => {
+  try {
+    const { isFavorite } = req.body;
+    const folder = await Folder.findOneAndUpdate(
+      { id: req.params.id },
+      { isFavorite, modifiedAt: new Date() },
+      { new: true }
+    );
+    if (!folder) return res.status(404).json({ error: 'Folder not found' });
+    res.json(folder);
+  } catch (error) {
+    res.status(500).json({ error: error.message });
+  }
+});
+
+// Update folder archive status
+router.put('/:id/archive', async (req, res) => {
+  try {
+    const { isArchived } = req.body;
+    const folder = await Folder.findOneAndUpdate(
+      { id: req.params.id },
+      { isArchived, modifiedAt: new Date() },
+      { new: true }
+    );
+    if (!folder) return res.status(404).json({ error: 'Folder not found' });
+    res.json(folder);
+  } catch (error) {
+    res.status(500).json({ error: error.message });
+  }
+});
+
 // Clear All Folders (App Reset)
 router.post('/clear-all', async (req, res) => {
   try {

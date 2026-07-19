@@ -26,6 +26,8 @@ export interface Folder {
   parentId: string | null;
   isDeleted?: number;
   deletedAt?: Date | null;
+  isFavorite?: number;
+  isArchived?: number;
   createdAt: Date;
   modifiedAt: Date;
 }

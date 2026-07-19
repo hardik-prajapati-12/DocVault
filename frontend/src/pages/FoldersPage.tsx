@@ -14,7 +14,9 @@ import {
   X,
   Download,
   Star,
-  Archive
+  Archive,
+  Eye,
+  Copy
 } from 'lucide-react';
 import { useAppStore } from '@/store/app-store';
 import { useConfirmStore } from '@/store/confirm-store';
@@ -76,7 +78,7 @@ export const FoldersPage: React.FC = () => {
 
   // Filter folders and files matching active parent
   const currentFolders = useMemo(() => {
-    return folders.filter((f) => f.parentId === currentParentId && (isFolderDeleted ? f.isDeleted === 1 : f.isDeleted !== 1));
+    return folders.filter((f) => f.parentId === currentParentId && (isFolderDeleted ? f.isDeleted === 1 : f.isDeleted !== 1 && f.isArchived !== 1));
   }, [folders, currentParentId, isFolderDeleted]);
 
   const currentFiles = useMemo(() => {
@@ -267,6 +269,41 @@ export const FoldersPage: React.FC = () => {
 
     const items: ContextMenuItem[] = [
       {
+        label: 'Open',
+        icon: <Eye className="w-4 h-4" />,
+        onClick: () => navigate(`/folders/${folder.id}`),
+      },
+      {
+        label: 'Download',
+        icon: <Download className="w-4 h-4" />,
+        onClick: async () => {
+          const fileIds = getFilesFromFoldersAndFiles(new Set([folder.id]));
+          if (fileIds.length === 0) {
+            toast.error('Folder is empty');
+            return;
+          }
+          toast.loading('Preparing download...', { id: 'folder-dl' });
+          const filesList: { name: string; blob: Blob }[] = [];
+          for (const id of fileIds) {
+            const doc = documents.find((f) => f.id === id);
+            const blob = await getFileBlob(id);
+            if (doc && blob) filesList.push({ name: doc.name, blob });
+          }
+          if (filesList.length > 0) {
+            const zip = await createZipArchive(filesList);
+            const url = URL.createObjectURL(zip);
+            const a = document.createElement('a');
+            a.href = url;
+            a.download = `${folder.name}.zip`;
+            a.click();
+            URL.revokeObjectURL(url);
+            toast.success(`Downloaded ${folder.name}`, { id: 'folder-dl' });
+          } else {
+            toast.error('Could not retrieve file data', { id: 'folder-dl' });
+          }
+        },
+      },
+      {
         label: 'Rename',
         icon: <Edit3 className="w-4 h-4" />,
         onClick: () => {
@@ -274,6 +311,53 @@ export const FoldersPage: React.FC = () => {
           setRenameFolderName(folder.name);
           setIsRenameOpen(true);
         },
+      },
+      {
+        label: 'Duplicate',
+        icon: <Copy className="w-4 h-4" />,
+        onClick: async () => {
+          toast.loading('Duplicating folder...', { id: 'folder-dup' });
+          try {
+            const res = await fetch(`/api/folders/${folder.id}/duplicate`, { method: 'POST' });
+            if (res.ok) {
+              toast.success('Folder duplicated', { id: 'folder-dup' });
+              await useAppStore.getState().fetchData();
+            } else {
+              toast.error('Failed to duplicate folder', { id: 'folder-dup' });
+            }
+          } catch {
+            toast.error('Failed to duplicate folder', { id: 'folder-dup' });
+          }
+        },
+      },
+      {
+        label: folder.isFavorite === 1 ? 'Unfavorite' : 'Favorite',
+        icon: <Star className={`w-4 h-4 ${folder.isFavorite === 1 ? 'text-amber-400 fill-amber-400' : ''}`} />,
+        onClick: async () => {
+          const nextVal = folder.isFavorite === 1 ? 0 : 1;
+          await fetch(`/api/folders/${folder.id}/favorite`, {
+            method: 'PUT',
+            headers: { 'Content-Type': 'application/json' },
+            body: JSON.stringify({ isFavorite: nextVal }),
+          });
+          toast.success(nextVal === 1 ? 'Added to favorites' : 'Removed from favorites');
+          await useAppStore.getState().fetchData();
+        },
+      },
+      {
+        label: folder.isArchived === 1 ? 'Unarchive' : 'Archive',
+        icon: <Archive className="w-4 h-4" />,
+        onClick: async () => {
+          const nextVal = folder.isArchived === 1 ? 0 : 1;
+          await fetch(`/api/folders/${folder.id}/archive`, {
+            method: 'PUT',
+            headers: { 'Content-Type': 'application/json' },
+            body: JSON.stringify({ isArchived: nextVal }),
+          });
+          toast.success(nextVal === 1 ? 'Archived' : 'Unarchived');
+          await useAppStore.getState().fetchData();
+        },
+        divider: true,
       },
       {
         label: 'Move to Trash',

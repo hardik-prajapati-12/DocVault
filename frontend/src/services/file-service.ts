@@ -455,7 +455,7 @@ export async function bulkFavorite(ids: string[], isFavorite: number = 1): Promi
  */
 export async function createFolder(name: string, parentId: string | null = null): Promise<string> {
   const id = generateId();
-  await fetch('/api/folders', {
+  const res = await fetch('/api/folders', {
     method: 'POST',
     headers: { 'Content-Type': 'application/json' },
     body: JSON.stringify({
@@ -464,6 +464,10 @@ export async function createFolder(name: string, parentId: string | null = null)
       parentId,
     }),
   });
+  if (!res.ok) {
+    const err = await res.json().catch(() => ({}));
+    throw new Error(err.error || 'Failed to create folder');
+  }
   await useAppStore.getState().fetchData();
   return id;
 }
@@ -472,13 +476,17 @@ export async function createFolder(name: string, parentId: string | null = null)
  * Rename a folder.
  */
 export async function renameFolder(id: string, newName: string): Promise<void> {
-  await fetch(`/api/folders/${id}`, {
+  const res = await fetch(`/api/folders/${id}`, {
     method: 'PUT',
     headers: { 'Content-Type': 'application/json' },
     body: JSON.stringify({
       name: sanitizeFileName(newName),
     }),
   });
+  if (!res.ok) {
+    const err = await res.json().catch(() => ({}));
+    throw new Error(err.error || 'Failed to rename folder');
+  }
   await useAppStore.getState().fetchData();
 }
 
@@ -486,9 +494,13 @@ export async function renameFolder(id: string, newName: string): Promise<void> {
  * Delete a folder and all its contents.
  */
 export async function deleteFolder(id: string): Promise<void> {
-  await fetch(`/api/folders/${id}`, {
+  const res = await fetch(`/api/folders/${id}`, {
     method: 'DELETE',
   });
+  if (!res.ok) {
+    const err = await res.json().catch(() => ({}));
+    throw new Error(err.error || 'Failed to delete folder');
+  }
   await useAppStore.getState().fetchData();
 }
 

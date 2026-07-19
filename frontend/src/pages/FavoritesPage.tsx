@@ -1,11 +1,14 @@
 import React, { useMemo } from 'react';
+import { useNavigate } from 'react-router-dom';
 import { motion } from 'framer-motion';
-import { Star, CheckSquare, X, Download, Archive, Trash2 } from 'lucide-react';
+import { Star, CheckSquare, X, Download, Archive, Trash2, Folder as FolderIcon, MoreVertical, Eye, Copy, Edit3 } from 'lucide-react';
 import { useAppStore } from '@/store/app-store';
+import { useConfirmStore } from '@/store/confirm-store';
 import { FileGrid, FileList } from '@/components/files';
-import { Button } from '@/components/ui';
-import { bulkSoftDelete, bulkArchive, bulkFavorite, getFileBlob } from '@/services/file-service';
+import { Button, ContextMenu, type ContextMenuItem, type ContextMenuRef } from '@/components/ui';
+import { bulkSoftDelete, bulkArchive, bulkFavorite, getFileBlob, deleteFolder } from '@/services/file-service';
 import { createZipArchive } from '@/services/compression/compression-service';
+import type { Folder } from '@/types';
 import toast from 'react-hot-toast';
 
 const FavoritesPage: React.FC = () => {
@@ -13,11 +16,16 @@ const FavoritesPage: React.FC = () => {
   const searchQuery = useAppStore((s) => s.searchQuery);
   const sortOption = useAppStore((s) => s.sortOption);
 
+  const navigate = useNavigate();
+  const confirm = useConfirmStore();
+  const folders = useAppStore((s) => s.folders) ?? [];
+  const documents = useAppStore((s) => s.documents);
   const selectedIds = useAppStore((s) => s.selectedIds);
   const selectionMode = useAppStore((s) => s.selectionMode);
   const clearSelection = useAppStore((s) => s.clearSelection);
   const setSelectionMode = useAppStore((s) => s.setSelectionMode);
   const selectAll = useAppStore((s) => s.selectAll);
+  const toggleSelection = useAppStore((s) => s.toggleSelection);
 
   // Clear selections on unmount
   React.useEffect(() => {
@@ -27,47 +35,124 @@ const FavoritesPage: React.FC = () => {
     };
   }, [clearSelection, setSelectionMode]);
 
-  const documents = useAppStore((s) => s.documents);
-  const favorites = useMemo(() => documents.filter((d) => d.isDeleted === 0 && d.isFavorite === 1), [documents]);
+  const favFolders = useMemo(() => folders.filter((f) => f.isDeleted !== 1 && f.isFavorite === 1 && f.isArchived !== 1), [folders]);
+  const favFiles = useMemo(() => documents.filter((d) => d.isDeleted === 0 && d.isFavorite === 1 && d.isArchived !== 1), [documents]);
 
-  const files = useMemo(() => {
-    if (!favorites) return [];
-    let result = favorites;
+  const displayFolders = useMemo(() => {
     if (searchQuery.trim()) {
       const q = searchQuery.toLowerCase();
-      result = result.filter((f) => f.name.toLowerCase().includes(q));
+      return favFolders.filter((f) => f.name.toLowerCase().includes(q));
     }
-    return result;
-  }, [favorites, searchQuery, sortOption]);
+    return favFolders;
+  }, [favFolders, searchQuery]);
+
+  const displayFiles = useMemo(() => {
+    if (searchQuery.trim()) {
+      const q = searchQuery.toLowerCase();
+      return favFiles.filter((f) => f.name.toLowerCase().includes(q));
+    }
+    return favFiles;
+  }, [favFiles, searchQuery]);
+
+  const currentItems = useMemo(() => {
+    return [
+      ...displayFolders.map((f) => ({ id: f.id, type: 'folder' })),
+      ...displayFiles.map((d) => ({ id: d.id, type: 'file' })),
+    ];
+  }, [displayFolders, displayFiles]);
 
   const loading = false;
 
+  const getFilesFromFolder = (folderId: string): string[] => {
+    const fileIds: string[] = [];
+    documents.forEach((d) => {
+      if (d.folderId === folderId) fileIds.push(d.id);
+    });
+    folders.forEach((sub) => {
+      if (sub.parentId === folderId) fileIds.push(...getFilesFromFolder(sub.id));
+    });
+    return fileIds;
+  };
+
   const handleBulkDelete = async () => {
     if (selectedIds.size === 0) return;
-    await bulkSoftDelete(Array.from(selectedIds));
-    toast.success(`${selectedIds.size} files moved to trash`);
+    const selectedArray = Array.from(selectedIds);
+    const fileIds = selectedArray.filter((id) => documents.some((d) => d.id === id));
+    const folderIds = selectedArray.filter((id) => folders.some((f) => f.id === id));
+
+    if (fileIds.length > 0) {
+      await bulkSoftDelete(fileIds);
+    }
+    if (folderIds.length > 0) {
+      await fetch('/api/folders/bulk-delete', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ ids: folderIds }),
+      });
+    }
+    toast.success(`Moved selected items to trash`);
     clearSelection();
+    await useAppStore.getState().fetchData();
   };
 
   const handleBulkFavorite = async () => {
     if (selectedIds.size === 0) return;
-    await bulkFavorite(Array.from(selectedIds), 0);
-    toast.success(`Removed ${selectedIds.size} files from favorites`);
+    const selectedArray = Array.from(selectedIds);
+    const fileIds = selectedArray.filter((id) => documents.some((d) => d.id === id));
+    const folderIds = selectedArray.filter((id) => folders.some((f) => f.id === id));
+
+    if (fileIds.length > 0) {
+      await bulkFavorite(fileIds, 0);
+    }
+    for (const id of folderIds) {
+      await fetch(`/api/folders/${id}/favorite`, {
+        method: 'PUT',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ isFavorite: 0 }),
+      });
+    }
+    toast.success(`Removed selected items from favorites`);
     clearSelection();
+    await useAppStore.getState().fetchData();
   };
 
   const handleBulkArchive = async () => {
     if (selectedIds.size === 0) return;
-    await bulkArchive(Array.from(selectedIds), 1);
-    toast.success(`Archived ${selectedIds.size} files`);
+    const selectedArray = Array.from(selectedIds);
+    const fileIds = selectedArray.filter((id) => documents.some((d) => d.id === id));
+    const folderIds = selectedArray.filter((id) => folders.some((f) => f.id === id));
+
+    if (fileIds.length > 0) {
+      await bulkArchive(fileIds, 1);
+    }
+    for (const id of folderIds) {
+      await fetch(`/api/folders/${id}/archive`, {
+        method: 'PUT',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ isArchived: 1 }),
+      });
+    }
+    toast.success(`Archived selected items`);
     clearSelection();
+    await useAppStore.getState().fetchData();
   };
 
   const handleBulkDownload = async () => {
     if (selectedIds.size === 0) return;
     toast.loading('Preparing download...', { id: 'bulk-dl' });
     const fileList: { name: string; blob: Blob }[] = [];
-    for (const id of selectedIds) {
+    const selectedArray = Array.from(selectedIds);
+
+    const allFileIds = new Set<string>();
+    selectedArray.forEach((id) => {
+      if (documents.some((d) => d.id === id)) {
+        allFileIds.add(id);
+      } else if (folders.some((f) => f.id === id)) {
+        getFilesFromFolder(id).forEach((fid) => allFileIds.add(fid));
+      }
+    });
+
+    for (const id of allFileIds) {
       const doc = documents.find((f) => f.id === id);
       const blob = await getFileBlob(id);
       if (doc && blob) fileList.push({ name: doc.name, blob });
@@ -77,12 +162,158 @@ const FavoritesPage: React.FC = () => {
       const url = URL.createObjectURL(zip);
       const a = document.createElement('a');
       a.href = url;
-      a.download = `docvault-${fileList.length}files.zip`;
+      a.download = `docvault-favorites-${fileList.length}files.zip`;
       a.click();
       URL.revokeObjectURL(url);
     }
     toast.success(`Downloaded ${fileList.length} files`, { id: 'bulk-dl' });
     clearSelection();
+  };
+
+  const FolderCardWithContext: React.FC<{ folder: Folder }> = ({ folder }) => {
+    const contextMenuRef = React.useRef<ContextMenuRef>(null);
+    const isSelected = selectedIds.has(folder.id);
+
+    const items: ContextMenuItem[] = [
+      {
+        label: 'Open',
+        icon: <Eye className="w-4 h-4" />,
+        onClick: () => navigate(`/folders/${folder.id}`),
+      },
+      {
+        label: 'Download',
+        icon: <Download className="w-4 h-4" />,
+        onClick: async () => {
+          const fileIds = getFilesFromFolder(folder.id);
+          if (fileIds.length === 0) {
+            toast.error('Folder is empty');
+            return;
+          }
+          toast.loading('Preparing download...', { id: 'folder-dl' });
+          const filesList: { name: string; blob: Blob }[] = [];
+          for (const id of fileIds) {
+            const doc = documents.find((f) => f.id === id);
+            const blob = await getFileBlob(id);
+            if (doc && blob) filesList.push({ name: doc.name, blob });
+          }
+          if (filesList.length > 0) {
+            const zip = await createZipArchive(filesList);
+            const url = URL.createObjectURL(zip);
+            const a = document.createElement('a');
+            a.href = url;
+            a.download = `${folder.name}.zip`;
+            a.click();
+            URL.revokeObjectURL(url);
+            toast.success(`Downloaded ${folder.name}`, { id: 'folder-dl' });
+          } else {
+            toast.error('Could not retrieve file data', { id: 'folder-dl' });
+          }
+        },
+      },
+      {
+        label: 'Unfavorite',
+        icon: <Star className="w-4 h-4 text-amber-400 fill-amber-400" />,
+        onClick: async () => {
+          await fetch(`/api/folders/${folder.id}/favorite`, {
+            method: 'PUT',
+            headers: { 'Content-Type': 'application/json' },
+            body: JSON.stringify({ isFavorite: 0 }),
+          });
+          toast.success('Removed from favorites');
+          await useAppStore.getState().fetchData();
+        },
+      },
+      {
+        label: 'Archive',
+        icon: <Archive className="w-4 h-4" />,
+        onClick: async () => {
+          await fetch(`/api/folders/${folder.id}/archive`, {
+            method: 'PUT',
+            headers: { 'Content-Type': 'application/json' },
+            body: JSON.stringify({ isArchived: 1 }),
+          });
+          toast.success('Archived folder');
+          await useAppStore.getState().fetchData();
+        },
+        divider: true,
+      },
+      {
+        label: 'Move to Trash',
+        icon: <Trash2 className="w-4 h-4" />,
+        onClick: () => {
+          confirm.triggerConfirm({
+            title: 'Move to Trash',
+            message: `Are you sure you want to move "${folder.name}" to the trash? All files and folders inside will be moved to the trash as well.`,
+            confirmText: 'Move to Trash',
+            variant: 'danger',
+            onConfirm: async () => {
+              await deleteFolder(folder.id);
+              toast.success('Folder moved to trash');
+              await useAppStore.getState().fetchData();
+            },
+          });
+        },
+        variant: 'danger',
+      },
+    ];
+
+    const handleClick = (e: React.MouseEvent) => {
+      if (selectionMode) {
+        e.preventDefault();
+        toggleSelection(folder.id);
+      } else {
+        navigate(`/folders/${folder.id}`);
+      }
+    };
+
+    return (
+      <ContextMenu ref={contextMenuRef} items={items}>
+        <motion.div
+          layout
+          initial={{ opacity: 0, scale: 0.95 }}
+          animate={{ opacity: 1, scale: 1 }}
+          exit={{ opacity: 0, scale: 0.95 }}
+          transition={{ duration: 0.15 }}
+          onClick={handleClick}
+          className={`glass-card p-4 cursor-pointer group relative flex flex-col justify-between h-32 select-none hover:ring-2 hover:ring-[var(--accent)] transition-all
+            ${isSelected ? 'ring-2 ring-[var(--accent)] bg-[var(--accent-dim)]' : ''}`}
+        >
+          <div className="flex items-start justify-between">
+            {selectionMode ? (
+              <div className={`w-5 h-5 rounded-md border-2 flex items-center justify-center transition-colors
+                ${isSelected ? 'bg-[var(--accent)] border-[var(--accent)]' : 'border-[var(--text-tertiary)]'}`}
+              >
+                {isSelected && <span className="text-white text-xs font-bold">✓</span>}
+              </div>
+            ) : (
+              <div className="w-10 h-10 rounded-xl bg-[var(--accent-dim)] flex items-center justify-center text-[var(--accent)]">
+                <FolderIcon className="w-5 h-5 fill-[var(--accent)]" />
+              </div>
+            )}
+            {!selectionMode && (
+              <button
+                onClick={(e) => {
+                  e.stopPropagation();
+                  contextMenuRef.current?.showMenu(e);
+                }}
+                className="p-1.5 rounded-lg opacity-0 group-hover:opacity-100 hover:bg-[var(--bg-tertiary)] transition-all cursor-pointer"
+                title="Folder actions"
+              >
+                <MoreVertical className="w-4 h-4 text-[var(--text-secondary)]" />
+              </button>
+            )}
+          </div>
+          <div className="mt-2 min-w-0">
+            <h4 className="text-sm font-semibold text-[var(--text-primary)] truncate" title={folder.name}>
+              {folder.name}
+            </h4>
+            <p className="text-[10px] text-[var(--text-tertiary)] mt-0.5 flex items-center gap-1">
+              <Star className="w-2.5 h-2.5 text-amber-400 fill-amber-400" /> Favorite Folder
+            </p>
+          </div>
+        </motion.div>
+      </ContextMenu>
+    );
   };
 
   return (
@@ -94,10 +325,10 @@ const FavoritesPage: React.FC = () => {
             Favorites
           </h1>
           <p className="text-sm text-[var(--text-secondary)] mt-1">
-            {loading ? 'Loading...' : `${files.length} favorite files`}
+            {loading ? 'Loading...' : `${displayFolders.length} folders, ${displayFiles.length} files`}
           </p>
         </div>
-        {files.length > 0 && (
+        {currentItems.length > 0 && (
           <Button
             variant={selectionMode ? 'ghost' : 'secondary'}
             size="sm"
@@ -111,7 +342,7 @@ const FavoritesPage: React.FC = () => {
             }}
             icon={selectionMode ? <X className="w-3.5 h-3.5" /> : <CheckSquare className="w-3.5 h-3.5" />}
           >
-            {selectionMode ? 'Close Selection' : 'Select Files'}
+            {selectionMode ? 'Close Selection' : 'Select Items'}
           </Button>
         )}
       </div>
@@ -131,7 +362,7 @@ const FavoritesPage: React.FC = () => {
             <Button
               variant="secondary"
               size="sm"
-              onClick={() => selectAll(files.map((f) => f.id))}
+              onClick={() => selectAll(currentItems.map((item) => item.id))}
             >
               Select All
             </Button>
@@ -179,13 +410,35 @@ const FavoritesPage: React.FC = () => {
         </motion.div>
       )}
 
-      {viewMode === 'grid' ? (
-        <FileGrid files={files} loading={loading} />
-      ) : (
-        <FileList files={files} loading={loading} />
+      {/* Folders Section */}
+      {displayFolders.length > 0 && (
+        <div className="mb-8">
+          <h3 className="text-xs font-bold uppercase tracking-wider text-[var(--text-tertiary)] mb-3">
+            Folders ({displayFolders.length})
+          </h3>
+          <div className="grid grid-cols-2 sm:grid-cols-3 md:grid-cols-4 lg:grid-cols-5 xl:grid-cols-6 gap-4">
+            {displayFolders.map((folder) => (
+              <FolderCardWithContext key={folder.id} folder={folder} />
+            ))}
+          </div>
+        </div>
       )}
 
-      {!loading && files.length === 0 && (
+      {/* Files Section */}
+      <div>
+        {displayFolders.length > 0 && displayFiles.length > 0 && (
+          <h3 className="text-xs font-bold uppercase tracking-wider text-[var(--text-tertiary)] mb-3">
+            Files ({displayFiles.length})
+          </h3>
+        )}
+        {viewMode === 'grid' ? (
+          <FileGrid files={displayFiles} loading={loading} />
+        ) : (
+          <FileList files={displayFiles} loading={loading} />
+        )}
+      </div>
+
+      {!loading && currentItems.length === 0 && (
         <motion.div
           initial={{ opacity: 0, y: 20 }}
           animate={{ opacity: 1, y: 0 }}
@@ -196,7 +449,7 @@ const FavoritesPage: React.FC = () => {
           </div>
           <h3 className="text-lg font-semibold text-[var(--text-primary)] mb-1">No favorites yet</h3>
           <p className="text-sm text-[var(--text-secondary)]">
-            Star files to add them to your favorites
+            Star files and folders to add them to your favorites
           </p>
         </motion.div>
       )}
