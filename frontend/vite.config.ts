@@ -6,6 +6,9 @@ import { corsProxyPlugin } from './plugins/cors-proxy.js';
 import path from 'path';
 
 export default defineConfig({
+  optimizeDeps: {
+    include: ['jszip', 'docx-preview', 'html2canvas', 'jspdf'],
+  },
   plugins: [
     react(),
     tailwindcss(),

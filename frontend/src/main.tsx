@@ -1,3 +1,8 @@
+import JSZip from 'jszip';
+if (typeof window !== 'undefined') {
+  (window as any).JSZip = JSZip;
+}
+
 import { StrictMode } from 'react';
 import { createRoot } from 'react-dom/client';
 import App from './App';

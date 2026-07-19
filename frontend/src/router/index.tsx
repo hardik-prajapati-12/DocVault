@@ -10,7 +10,6 @@ const FilesPage = lazyWithRetry(() => import('@/pages/FilesPage'));
 const FavoritesPage = lazyWithRetry(() => import('@/pages/FavoritesPage'));
 const ArchivePage = lazyWithRetry(() => import('@/pages/ArchivePage'));
 const TrashPage = lazyWithRetry(() => import('@/pages/TrashPage'));
-const ConverterPage = lazyWithRetry(() => import('@/pages/ConverterPage'));
 
 const PageLoader = () => (
   <div className="flex items-center justify-center h-64">
@@ -62,14 +61,6 @@ const router = createBrowserRouter([
         element: (
           <Suspense fallback={<PageLoader />}>
             <TrashPage />
-          </Suspense>
-        ),
-      },
-      {
-        path: 'converter',
-        element: (
-          <Suspense fallback={<PageLoader />}>
-            <ConverterPage />
           </Suspense>
         ),
       },

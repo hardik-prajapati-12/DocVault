@@ -3,7 +3,7 @@ import { NavLink, useLocation } from 'react-router-dom';
 import { motion, AnimatePresence } from 'framer-motion';
 import {
   LayoutDashboard, FolderOpen, Star, Archive, Trash2,
-  Settings, ChevronLeft, ChevronRight, RefreshCw, Download,
+  Settings, ChevronLeft, ChevronRight, Download,
 } from 'lucide-react';
 import { useAppStore } from '@/store/app-store';
 import { formatBytes } from '@/utils';
@@ -14,7 +14,6 @@ const navItems = [
   { path: '/favorites', label: 'Favorites', icon: Star },
   { path: '/archive', label: 'Archive', icon: Archive },
   { path: '/trash', label: 'Trash', icon: Trash2 },
-  { path: '/converter', label: 'Converter', icon: RefreshCw },
 ];
 
 export const Sidebar: React.FC = () => {
