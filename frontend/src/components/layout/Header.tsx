@@ -1,11 +1,10 @@
 import React from 'react';
 import {
-  Search, Grid3X3, List, SortAsc, Upload, Wifi, WifiOff,
+  Search, Grid3X3, List, SortAsc, Upload,
   ArrowDownAZ, ArrowUpAZ, Clock, ArrowDown, ArrowUp, FileText
 } from 'lucide-react';
 import { motion } from 'framer-motion';
 import { useAppStore } from '@/store/app-store';
-import { useOnlineStatus } from '@/hooks';
 import type { SortOption, FilterOption } from '@/types';
 
 const sortOptions: { value: SortOption; label: string; icon: React.ReactNode }[] = [
@@ -44,7 +43,6 @@ export const Header: React.FC = () => {
   const activeFilter = useAppStore((s) => s.activeFilter);
   const setActiveFilter = useAppStore((s) => s.setActiveFilter);
   const setUploadModalOpen = useAppStore((s) => s.setUploadModalOpen);
-  const isOnline = useOnlineStatus();
 
   const [sortOpen, setSortOpen] = React.useState(false);
   const [filterOpen, setFilterOpen] = React.useState(false);
@@ -163,16 +161,6 @@ export const Header: React.FC = () => {
           <Upload className="w-4 h-4" />
           <span className="hidden sm:inline">Upload</span>
         </button>
-
-        {/* Online Indicator */}
-        <div
-          className={`flex items-center gap-1.5 px-2.5 py-1.5 rounded-lg text-xs font-medium
-            ${isOnline ? 'text-emerald-400 bg-emerald-500/10' : 'text-amber-400 bg-amber-500/10'}`}
-          title={isOnline ? 'Online' : 'Offline — All features still work!'}
-        >
-          {isOnline ? <Wifi className="w-3.5 h-3.5" /> : <WifiOff className="w-3.5 h-3.5" />}
-          <span className="hidden md:inline">{isOnline ? 'Online' : 'Offline'}</span>
-        </div>
       </div>
     </header>
   );

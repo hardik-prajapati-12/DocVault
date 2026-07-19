@@ -8,7 +8,6 @@ import { FileText, HardDrive, Star, Archive, Download, TrendingUp, Trash2 } from
 import { useAppStore } from '@/store/app-store';
 import { formatBytes } from '@/utils';
 import { getFileTypeCategory, FILE_CATEGORIES } from '@/types';
-import { getStorageEstimate } from '@/services/storage/opfs-storage';
 import { DashboardSkeleton } from '@/components/ui';
 
 const CHART_COLORS = ['#3b82f6', '#8b5cf6', '#f43f5e', '#10b981', '#f59e0b', '#14b8a6', '#6366f1', '#f97316', '#ec4899', '#22d3ee', '#a78bfa', '#94a3b8'];
@@ -56,7 +55,15 @@ export const DashboardCharts: React.FC = () => {
   const allDocs = useAppStore((s) => s.documents);
 
   const [storage, setStorage] = React.useState({ used: 0, total: 0 });
-  React.useEffect(() => { getStorageEstimate().then(setStorage); }, [allDocs]);
+  React.useEffect(() => {
+    const docs = allDocs || [];
+    const used = docs.reduce((sum, doc) => sum + doc.size, 0);
+    navigator.storage.estimate().then((est) => {
+      setStorage({ used, total: est.quota ?? 10 * 1024 * 1024 * 1024 });
+    }).catch(() => {
+      setStorage({ used, total: 10 * 1024 * 1024 * 1024 });
+    });
+  }, [allDocs]);
 
   const stats = useMemo(() => {
     if (!allDocs) return null;

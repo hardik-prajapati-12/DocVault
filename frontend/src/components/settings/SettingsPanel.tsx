@@ -2,12 +2,10 @@ import React, { useState } from 'react';
 import { motion } from 'framer-motion';
 import {
   Moon, Sun, Monitor, Palette, Grid3X3, List, Download, Upload,
-  Trash2, Database, RefreshCw, HardDrive, Cloud,
+  Trash2, Database, HardDrive, Cloud, RefreshCw,
 } from 'lucide-react';
 import { Modal, Button, ConfirmDialog } from '@/components/ui';
 import { useAppStore } from '@/store/app-store';
-import { db } from '@/db/db';
-import { clearAllFiles, getStorageEstimate } from '@/services/storage/opfs-storage';
 import { getFileBlob } from '@/services/file-service';
 import { formatBytes } from '@/utils';
 import { createZipArchive } from '@/services/compression/compression-service';
@@ -68,7 +66,15 @@ export const SettingsPanel: React.FC = () => {
   }, [syncProvider, webdavUrl, webdavUsername, webdavPassword, autoSync]);
 
   React.useEffect(() => {
-    if (isOpen) getStorageEstimate().then(setStorage);
+    if (isOpen) {
+      const docs = useAppStore.getState().documents || [];
+      const used = docs.reduce((sum, doc) => sum + doc.size, 0);
+      navigator.storage.estimate().then((est) => {
+        setStorage({ used, total: est.quota ?? 10 * 1024 * 1024 * 1024 });
+      }).catch(() => {
+        setStorage({ used, total: 10 * 1024 * 1024 * 1024 });
+      });
+    }
   }, [isOpen]);
 
   const handleExportDB = async () => {
@@ -165,11 +171,6 @@ export const SettingsPanel: React.FC = () => {
 
   const handleReset = async () => {
     try {
-      await clearAllFiles();
-      await db.documents.clear();
-      await db.folders.clear();
-      await db.settings.clear();
-
       await fetch('/api/documents/clear-all', { method: 'POST' });
       await fetch('/api/folders/clear-all', { method: 'POST' });
 
@@ -181,18 +182,6 @@ export const SettingsPanel: React.FC = () => {
     } catch (error) {
       console.error(error);
       toast.error('Reset failed');
-    }
-  };
-
-  const handleClearCache = async () => {
-    try {
-      if ('caches' in window) {
-        const names = await caches.keys();
-        await Promise.all(names.map((name) => caches.delete(name)));
-      }
-      toast.success('Cache cleared');
-    } catch {
-      toast.error('Failed to clear cache');
     }
   };
 
@@ -325,15 +314,6 @@ export const SettingsPanel: React.FC = () => {
                 />
               </div>
             </div>
-            <Button
-              variant="secondary"
-              size="sm"
-              className="mt-2 w-full"
-              onClick={handleClearCache}
-              icon={<RefreshCw className="w-3.5 h-3.5" />}
-            >
-              Clear Cache
-            </Button>
           </section>
 
           {/* Data Management */}

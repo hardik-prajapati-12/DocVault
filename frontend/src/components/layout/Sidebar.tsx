@@ -3,7 +3,7 @@ import { NavLink, useLocation } from 'react-router-dom';
 import { motion, AnimatePresence } from 'framer-motion';
 import {
   LayoutDashboard, Files, Star, Archive, Trash2,
-  Settings, ChevronLeft, ChevronRight, Download, Folder,
+  Settings, ChevronLeft, ChevronRight, Folder,
 } from 'lucide-react';
 import { useAppStore } from '@/store/app-store';
 import { formatBytes } from '@/utils';
@@ -27,31 +27,12 @@ export const Sidebar: React.FC = () => {
   const totalDocs = docs.filter((d) => d.isDeleted === 0).length;
 
   const [quota, setQuota] = React.useState(10 * 1024 * 1024 * 1024); // 10 GB default
-  const [deferredPrompt, setDeferredPrompt] = React.useState<any>(null);
 
   React.useEffect(() => {
     navigator.storage.estimate().then((est) => {
       if (est.quota) setQuota(est.quota);
     }).catch(() => {});
   }, []);
-
-  React.useEffect(() => {
-    const handler = (e: Event) => {
-      e.preventDefault();
-      setDeferredPrompt(e);
-    };
-    window.addEventListener('beforeinstallprompt', handler);
-    return () => window.removeEventListener('beforeinstallprompt', handler);
-  }, []);
-
-  const handleInstallClick = async () => {
-    if (!deferredPrompt) return;
-    deferredPrompt.prompt();
-    const { outcome } = await deferredPrompt.userChoice;
-    if (outcome === 'accepted') {
-      setDeferredPrompt(null);
-    }
-  };
 
   const usedStorage = docs.reduce((sum, doc) => sum + doc.size, 0);
   const storagePercent = quota > 0 ? (usedStorage / quota) * 100 : 0;
@@ -146,27 +127,6 @@ export const Sidebar: React.FC = () => {
 
       {/* Footer */}
       <div className="border-t border-[var(--border-color)] p-2 flex flex-col gap-1">
-        {deferredPrompt && (
-          <button
-            onClick={handleInstallClick}
-            className="flex items-center gap-2.5 px-3 py-2 rounded-xl text-sm font-semibold bg-gradient-to-r from-[var(--accent)] to-[var(--accent-hover)] text-white shadow-md hover:brightness-110 transition-all w-full cursor-pointer h-10 mb-1"
-            title="Install DocVault App"
-          >
-            <Download className="w-5 h-5 flex-shrink-0" />
-            <AnimatePresence>
-              {sidebarOpen && (
-                <motion.span
-                  initial={{ opacity: 0, width: 0 }}
-                  animate={{ opacity: 1, width: 'auto' }}
-                  exit={{ opacity: 0, width: 0 }}
-                  className="whitespace-nowrap"
-                >
-                  Install App
-                </motion.span>
-              )}
-            </AnimatePresence>
-          </button>
-        )}
         <div className="flex items-center justify-between w-full">
           <button
             onClick={() => setSettingsOpen(true)}

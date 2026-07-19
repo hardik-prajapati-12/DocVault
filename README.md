@@ -1,6 +1,6 @@
 # DocVault — Enterprise Document Management System
 
-DocVault is a production-ready, offline-first, professional document management application built on the MERN stack (MongoDB, Express, React, Node.js) with TypeScript. It provides a robust, modern interface for uploading, organizing, previewing, and managing files and folders.
+DocVault is a production-ready, professional document management application built on the MERN stack (MongoDB, Express, React, Node.js) with TypeScript. It provides a robust, modern interface for uploading, organizing, previewing, and managing files and folders.
 
 ---
 
@@ -44,7 +44,6 @@ DocVault/
 - **Flexible Grid and List Views**: Grid and list display modes apply to both files and folders. Grid mode shows elegant glassmorphism cards, and list mode renders folder rows (including sub-item counters, file sizes, type categories, and creation dates) styled alongside the document table.
 - **Multi-criteria Sorting**: Concurrently sort folders and files by Name (A-Z, Z-A), Creation Date (Newest, Oldest), and Recently Modified dates.
 - **Production-Ready SPA Serving**: In production mode, the backend dynamically hosts the React frontend build bundle (from `frontend/dist`), serving the web application and backend API under a single port.
-- **Offline-First PWA Capabilities**: Built-in Progressive Web App service workers cache static assets, icons, layouts, and Google Web Fonts for standalone utilities.
 
 ---
 
