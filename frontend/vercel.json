@@ -2,11 +2,11 @@
   "rewrites": [
     {
       "source": "/api/:path*",
-      "destination": "https://your-production-backend-url.com/api/:path*"
+      "destination": "https://docvault-1-e049.onrender.com/api/:path*"
     },
     {
       "source": "/uploads/:path*",
-      "destination": "https://your-production-backend-url.com/uploads/:path*"
+      "destination": "https://docvault-1-e049.onrender.com/uploads/:path*"
     },
     {
       "source": "/((?!assets|favicon.svg|pwa-192x192.png|pwa-512x512.png|pwa-192x192.svg|pwa-512x512.svg|sw.js|workbox-).*)",
