@@ -154,6 +154,16 @@ const FilesPage: React.FC = () => {
             {searchQuery && ` matching "${searchQuery}"`}
           </p>
         </div>
+        {processedFiles.length > 0 && !selectionMode && (
+          <Button
+            variant="secondary"
+            size="sm"
+            onClick={() => setSelectionMode(true)}
+            icon={<CheckSquare className="w-3.5 h-3.5" />}
+          >
+            Select Files
+          </Button>
+        )}
       </div>
 
       {/* Bulk Actions Bar */}

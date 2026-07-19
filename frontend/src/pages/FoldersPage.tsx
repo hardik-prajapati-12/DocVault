@@ -283,7 +283,16 @@ export const FoldersPage: React.FC = () => {
           ))}
         </div>
 
-        <div className="flex gap-2.5 self-start sm:self-auto">
+        <div className="flex gap-2.5 self-start sm:self-auto flex-wrap sm:flex-nowrap">
+          {folderId && currentFiles.length > 0 && !selectionMode && (
+            <Button
+              onClick={() => setSelectionMode(true)}
+              icon={<CheckSquare className="w-4 h-4" />}
+              variant="secondary"
+            >
+              Select Files
+            </Button>
+          )}
           {folderId && (
             <Button
               onClick={() => setUploadModalOpen(true)}
