@@ -84,7 +84,7 @@ const FilesPage: React.FC = () => {
   const setUploadModalOpen = useAppStore((s) => s.setUploadModalOpen);
 
   const documents = useAppStore((s) => s.documents);
-  const allFiles = useMemo(() => documents.filter((d) => d.isDeleted === 0 && d.isArchived === 0), [documents]);
+  const allFiles = useMemo(() => documents.filter((d) => d.isDeleted === 0 && d.isArchived === 0 && !d.folderId), [documents]);
 
   const processedFiles = useMemo(() => {
     if (!allFiles) return [];

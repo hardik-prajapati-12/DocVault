@@ -17,3 +17,6 @@ frontend/dev-dist/
 .vite/
 .eslintcache
 .oxlintrc.json
+
+# Uploads
+backend/uploads/

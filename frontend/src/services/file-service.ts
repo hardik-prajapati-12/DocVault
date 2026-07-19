@@ -9,6 +9,34 @@ import { useAppStore } from '@/store/app-store';
 type ProgressCallback = (progress: UploadProgress) => void;
 
 /**
+ * Ensures that a list of folder path parts exists in the database.
+ * Reuses existing folders where possible to avoid duplicates.
+ * Returns the folder ID of the leaf folder.
+ */
+export async function ensureFolderPath(parts: string[]): Promise<string | null> {
+  if (parts.length === 0) return null;
+
+  let currentParentId: string | null = null;
+
+  for (const part of parts) {
+    const folders = useAppStore.getState().folders;
+    // Look for a folder matching the name and parentId
+    const existing = folders.find(
+      (f) => f.name.toLowerCase() === part.toLowerCase() && f.parentId === currentParentId
+    );
+
+    if (existing) {
+      currentParentId = existing.id;
+    } else {
+      // Create the folder
+      currentParentId = await createFolder(part, currentParentId);
+    }
+  }
+
+  return currentParentId;
+}
+
+/**
  * Upload multiple files with progress tracking.
  */
 export async function uploadFiles(
@@ -23,6 +51,16 @@ export async function uploadFiles(
     const sanitizedName = sanitizeFileName(file.name);
     const extension = getExtension(sanitizedName);
     const mimeType = file.type || getMimeType(extension);
+
+    // Resolve folderId from webkitRelativePath if not explicitly provided
+    let fileFolderId = folderId;
+    if (!fileFolderId && file.webkitRelativePath) {
+      const parts = file.webkitRelativePath.split('/');
+      if (parts.length > 1) {
+        const folderParts = parts.slice(0, parts.length - 1);
+        fileFolderId = await ensureFolderPath(folderParts);
+      }
+    }
 
     const progress: UploadProgress = {
       fileId: id,
@@ -55,7 +93,7 @@ export async function uploadFiles(
     formData.append('name', sanitizedName);
     formData.append('extension', extension);
     formData.append('mimeType', mimeType);
-    formData.append('folderId', folderId || '');
+    formData.append('folderId', fileFolderId || '');
     formData.append('createdAt', new Date(file.lastModified).toISOString());
     formData.append('modifiedAt', new Date(file.lastModified).toISOString());
     if (thumbnailDataUrl) {

@@ -3,13 +3,14 @@ import { NavLink, useLocation } from 'react-router-dom';
 import { motion, AnimatePresence } from 'framer-motion';
 import {
   LayoutDashboard, FolderOpen, Star, Archive, Trash2,
-  Settings, ChevronLeft, ChevronRight, Download,
+  Settings, ChevronLeft, ChevronRight, Download, Folder,
 } from 'lucide-react';
 import { useAppStore } from '@/store/app-store';
 import { formatBytes } from '@/utils';
 
 const navItems = [
   { path: '/', label: 'Dashboard', icon: LayoutDashboard },
+  { path: '/folders', label: 'Folders', icon: Folder },
   { path: '/files', label: 'All Files', icon: FolderOpen },
   { path: '/favorites', label: 'Favorites', icon: Star },
   { path: '/archive', label: 'Archive', icon: Archive },

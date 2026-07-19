@@ -43,10 +43,17 @@ export const FileUploader: React.FC = () => {
     const files: File[] = [];
 
     // Handle folder drops
-    const processEntry = async (entry: FileSystemEntry): Promise<void> => {
+    const processEntry = async (entry: FileSystemEntry, currentPath: string = ''): Promise<void> => {
+      const entryPath = currentPath ? `${currentPath}/${entry.name}` : entry.name;
       if (entry.isFile) {
         const file = await new Promise<File>((resolve) => {
           (entry as FileSystemFileEntry).file(resolve);
+        });
+        Object.defineProperty(file, 'webkitRelativePath', {
+          value: entryPath,
+          writable: true,
+          enumerable: true,
+          configurable: true,
         });
         files.push(file);
       } else if (entry.isDirectory) {
@@ -54,7 +61,9 @@ export const FileUploader: React.FC = () => {
         const entries = await new Promise<FileSystemEntry[]>((resolve) => {
           reader.readEntries(resolve);
         });
-        for (const e of entries) await processEntry(e);
+        for (const e of entries) {
+          await processEntry(e, entryPath);
+        }
       }
     };
 
@@ -64,7 +73,7 @@ export const FileUploader: React.FC = () => {
         .filter(Boolean) as FileSystemEntry[];
 
       if (entries.length > 0) {
-        Promise.all(entries.map(processEntry)).then(() => processFiles(files));
+        Promise.all(entries.map((entry) => processEntry(entry))).then(() => processFiles(files));
         return;
       }
     }
