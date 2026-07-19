@@ -12,8 +12,51 @@ import { FileGrid, FileList } from '@/components/files';
 import { Button, ContextMenu, type ContextMenuItem, type ContextMenuRef } from '@/components/ui';
 import { bulkSoftDelete, bulkArchive, bulkFavorite, getFileBlob, deleteFolder } from '@/services/file-service';
 import { createZipArchive } from '@/services/compression/compression-service';
-import type { Folder } from '@/types';
+import type { Folder, DocFile, SortOption } from '@/types';
+import { formatRelativeDate } from '@/utils';
 import toast from 'react-hot-toast';
+
+function sortFolders(folders: Folder[], sort: SortOption): Folder[] {
+  const sorted = [...folders];
+  switch (sort) {
+    case 'newest':
+      return sorted.sort((a, b) => new Date(b.createdAt).getTime() - new Date(a.createdAt).getTime());
+    case 'oldest':
+      return sorted.sort((a, b) => new Date(a.createdAt).getTime() - new Date(b.createdAt).getTime());
+    case 'recently-modified':
+      return sorted.sort((a, b) => new Date(b.modifiedAt).getTime() - new Date(a.modifiedAt).getTime());
+    case 'a-z':
+      return sorted.sort((a, b) => a.name.localeCompare(b.name));
+    case 'z-a':
+      return sorted.sort((a, b) => b.name.localeCompare(a.name));
+    default:
+      return sorted;
+  }
+}
+
+function sortFiles(files: DocFile[], sort: SortOption): DocFile[] {
+  const sorted = [...files];
+  switch (sort) {
+    case 'newest':
+      return sorted.sort((a, b) => new Date(b.uploadedAt).getTime() - new Date(a.uploadedAt).getTime());
+    case 'oldest':
+      return sorted.sort((a, b) => new Date(a.uploadedAt).getTime() - new Date(b.uploadedAt).getTime());
+    case 'largest':
+      return sorted.sort((a, b) => b.size - a.size);
+    case 'smallest':
+      return sorted.sort((a, b) => a.size - b.size);
+    case 'a-z':
+      return sorted.sort((a, b) => a.name.localeCompare(b.name));
+    case 'z-a':
+      return sorted.sort((a, b) => b.name.localeCompare(a.name));
+    case 'extension':
+      return sorted.sort((a, b) => a.extension.localeCompare(b.extension));
+    case 'recently-modified':
+      return sorted.sort((a, b) => new Date(b.modifiedAt).getTime() - new Date(a.modifiedAt).getTime());
+    default:
+      return sorted;
+  }
+}
 
 type VaultState = 'setup' | 'unlock' | 'recovery' | 'reset' | 'view';
 
@@ -28,6 +71,7 @@ const SECURITY_QUESTIONS = [
 export const ArchivePage: React.FC = () => {
   const viewMode = useAppStore((s) => s.viewMode);
   const searchQuery = useAppStore((s) => s.searchQuery);
+  const sortOption = useAppStore((s) => s.sortOption);
 
   const navigate = useNavigate();
   const confirm = useConfirmStore();
@@ -84,20 +128,22 @@ export const ArchivePage: React.FC = () => {
   }), [documents, folders]);
 
   const displayFolders = useMemo(() => {
+    let filtered = archivedFolders;
     if (searchQuery.trim()) {
       const q = searchQuery.toLowerCase();
-      return archivedFolders.filter((f) => f.name.toLowerCase().includes(q));
+      filtered = archivedFolders.filter((f) => f.name.toLowerCase().includes(q));
     }
-    return archivedFolders;
-  }, [archivedFolders, searchQuery]);
+    return sortFolders(filtered, sortOption);
+  }, [archivedFolders, searchQuery, sortOption]);
 
   const displayFiles = useMemo(() => {
+    let filtered = archivedFiles;
     if (searchQuery.trim()) {
       const q = searchQuery.toLowerCase();
-      return archivedFiles.filter((f) => f.name.toLowerCase().includes(q));
+      filtered = archivedFiles.filter((f) => f.name.toLowerCase().includes(q));
     }
-    return archivedFiles;
-  }, [archivedFiles, searchQuery]);
+    return sortFiles(filtered, sortOption);
+  }, [archivedFiles, searchQuery, sortOption]);
 
   const currentItems = useMemo(() => {
     return [
@@ -843,50 +889,110 @@ export const ArchivePage: React.FC = () => {
 
                 return (
                   <ContextMenu ref={contextMenuRef} items={items}>
-                    <motion.div
-                      layout
-                      initial={{ opacity: 0, scale: 0.95 }}
-                      animate={{ opacity: 1, scale: 1 }}
-                      exit={{ opacity: 0, scale: 0.95 }}
-                      transition={{ duration: 0.15 }}
-                      onClick={handleClick}
-                      className={`glass-card p-4 cursor-pointer group relative flex flex-col justify-between h-32 select-none hover:ring-2 hover:ring-[var(--accent)] transition-all
-                        ${isSelected ? 'ring-2 ring-[var(--accent)] bg-[var(--accent-dim)]' : ''}`}
-                    >
-                      <div className="flex items-start justify-between">
-                        {selectionMode ? (
-                          <div className={`w-5 h-5 rounded-md border-2 flex items-center justify-center transition-colors
+                    {viewMode === 'grid' ? (
+                      <motion.div
+                        layout
+                        initial={{ opacity: 0, scale: 0.95 }}
+                        animate={{ opacity: 1, scale: 1 }}
+                        exit={{ opacity: 0, scale: 0.95 }}
+                        transition={{ duration: 0.15 }}
+                        onClick={handleClick}
+                        className={`glass-card p-4 cursor-pointer group relative flex flex-col justify-between h-32 select-none hover:ring-2 hover:ring-[var(--accent)] transition-all
+                          ${isSelected ? 'ring-2 ring-[var(--accent)] bg-[var(--accent-dim)]' : ''}`}
+                      >
+                        <div className="flex items-start justify-between">
+                          {selectionMode ? (
+                            <div className={`w-5 h-5 rounded-md border-2 flex items-center justify-center transition-colors
+                              ${isSelected ? 'bg-[var(--accent)] border-[var(--accent)]' : 'border-[var(--text-tertiary)]'}`}
+                            >
+                              {isSelected && <span className="text-white text-xs font-bold">✓</span>}
+                            </div>
+                          ) : (
+                            <div className="w-10 h-10 rounded-xl bg-[var(--accent-dim)] flex items-center justify-center text-[var(--accent)]">
+                              <FolderIcon className="w-5 h-5 fill-[var(--accent)]" />
+                            </div>
+                          )}
+                          {!selectionMode && (
+                            <button
+                              onClick={(e) => {
+                                e.stopPropagation();
+                                contextMenuRef.current?.showMenu(e);
+                              }}
+                              className="p-1.5 rounded-lg opacity-0 group-hover:opacity-100 hover:bg-[var(--bg-tertiary)] transition-all cursor-pointer"
+                              title="Folder actions"
+                            >
+                              <MoreVertical className="w-4 h-4 text-[var(--text-secondary)]" />
+                            </button>
+                          )}
+                        </div>
+                        <div className="mt-2 min-w-0">
+                          <h4 className="text-sm font-semibold text-[var(--text-primary)] truncate" title={folder.name}>
+                            {folder.name}
+                          </h4>
+                          <p className="text-[10px] text-[var(--text-tertiary)] mt-0.5 flex items-center gap-1">
+                            <Archive className="w-2.5 h-2.5 text-[var(--accent)]" /> Archived Folder
+                          </p>
+                        </div>
+                      </motion.div>
+                    ) : (
+                      <motion.div
+                        layout
+                        initial={{ opacity: 0 }}
+                        animate={{ opacity: 1 }}
+                        exit={{ opacity: 0 }}
+                        onClick={handleClick}
+                        className={`flex items-center gap-4 px-4 py-3 border-b border-[var(--border-color)] hover:bg-[var(--bg-card-hover)] transition-colors cursor-pointer group select-none
+                          ${isSelected ? 'bg-[var(--accent-dim)]' : ''}`}
+                      >
+                        {selectionMode && (
+                          <div className={`w-5 h-5 rounded-md border-2 flex items-center justify-center flex-shrink-0 transition-colors
                             ${isSelected ? 'bg-[var(--accent)] border-[var(--accent)]' : 'border-[var(--text-tertiary)]'}`}
                           >
                             {isSelected && <span className="text-white text-xs font-bold">✓</span>}
                           </div>
-                        ) : (
+                        )}
+
+                        <div className="relative flex-shrink-0">
                           <div className="w-10 h-10 rounded-xl bg-[var(--accent-dim)] flex items-center justify-center text-[var(--accent)]">
                             <FolderIcon className="w-5 h-5 fill-[var(--accent)]" />
                           </div>
-                        )}
+                          <Archive className="w-3.5 h-3.5 text-[var(--accent)] absolute -top-1 -right-1 drop-shadow" />
+                        </div>
+
+                        <div className="flex-1 min-w-0">
+                          <p className="text-sm font-medium text-[var(--text-primary)] truncate">{folder.name}</p>
+                          <p className="text-xs text-[var(--text-tertiary)]">
+                            {folders.filter((f) => f.parentId === folder.id).length} folders •{' '}
+                            {documents.filter((d) => d.folderId === folder.id && d.isDeleted === 0).length} files
+                          </p>
+                        </div>
+
+                        <span className="text-xs text-[var(--text-secondary)] w-20 text-right hidden sm:block">
+                          —
+                        </span>
+
+                        <span className="text-xs text-[var(--text-tertiary)] uppercase font-medium w-12 text-center hidden md:block">
+                          Folder
+                        </span>
+
+                        <span className="text-xs text-[var(--text-tertiary)] w-20 text-right hidden lg:block">
+                          {formatRelativeDate(folder.createdAt)}
+                        </span>
+
                         {!selectionMode && (
                           <button
                             onClick={(e) => {
                               e.stopPropagation();
                               contextMenuRef.current?.showMenu(e);
                             }}
-                            className="p-1.5 rounded-lg opacity-0 group-hover:opacity-100 hover:bg-[var(--bg-tertiary)] transition-all cursor-pointer"
+                            className="p-1.5 rounded-lg opacity-0 group-hover:opacity-100 hover:bg-[var(--bg-tertiary)] transition-all cursor-pointer flex-shrink-0 ml-auto"
                             title="Folder actions"
                           >
                             <MoreVertical className="w-4 h-4 text-[var(--text-secondary)]" />
                           </button>
                         )}
-                      </div>
-                      <div className="mt-2 min-w-0">
-                        <h4 className="text-sm font-semibold text-[var(--text-primary)] truncate" title={folder.name}>
-                          {folder.name}
-                        </h4>
-                        <p className="text-[10px] text-[var(--text-tertiary)] mt-0.5 flex items-center gap-1">
-                          <Archive className="w-2.5 h-2.5 text-[var(--accent)]" /> Archived Folder
-                        </p>
-                      </div>
-                    </motion.div>
+                      </motion.div>
+                    )}
                   </ContextMenu>
                 );
               };
@@ -996,11 +1102,19 @@ export const ArchivePage: React.FC = () => {
                       <h3 className="text-xs font-bold uppercase tracking-wider text-[var(--text-tertiary)] mb-3">
                         Folders ({displayFolders.length})
                       </h3>
-                      <div className="grid grid-cols-2 sm:grid-cols-3 md:grid-cols-4 lg:grid-cols-5 xl:grid-cols-6 gap-4">
-                        {displayFolders.map((folder) => (
-                          <FolderCardWithContext key={folder.id} folder={folder} />
-                        ))}
-                      </div>
+                      {viewMode === 'grid' ? (
+                        <div className="grid grid-cols-2 sm:grid-cols-3 md:grid-cols-4 lg:grid-cols-5 xl:grid-cols-6 gap-4">
+                          {displayFolders.map((folder) => (
+                            <FolderCardWithContext key={folder.id} folder={folder} />
+                          ))}
+                        </div>
+                      ) : (
+                        <div className="flex flex-col border border-[var(--border-color)] rounded-2xl overflow-hidden glass-strong divide-y divide-[var(--border-color)]">
+                          {displayFolders.map((folder) => (
+                            <FolderCardWithContext key={folder.id} folder={folder} />
+                          ))}
+                        </div>
+                      )}
                     </div>
                   )}
 
