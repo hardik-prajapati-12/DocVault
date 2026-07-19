@@ -50,12 +50,17 @@ export const FileUploader: React.FC = () => {
         const file = await new Promise<File>((resolve) => {
           (entry as FileSystemFileEntry).file(resolve);
         });
-        Object.defineProperty(file, 'webkitRelativePath', {
-          value: entryPath,
-          writable: true,
-          enumerable: true,
-          configurable: true,
-        });
+        try {
+          Object.defineProperty(file, 'webkitRelativePath', {
+            value: entryPath,
+            writable: true,
+            enumerable: true,
+            configurable: true,
+          });
+        } catch (e) {
+          // Fallback if read-only
+        }
+        (file as any).relativePath = entryPath;
         files.push(file);
       } else if (entry.isDirectory) {
         const reader = (entry as FileSystemDirectoryEntry).createReader();

@@ -13,10 +13,13 @@ type ProgressCallback = (progress: UploadProgress) => void;
  * Reuses existing folders where possible to avoid duplicates.
  * Returns the folder ID of the leaf folder.
  */
-export async function ensureFolderPath(parts: string[]): Promise<string | null> {
-  if (parts.length === 0) return null;
+export async function ensureFolderPath(
+  parts: string[],
+  startParentId: string | null = null
+): Promise<string | null> {
+  if (parts.length === 0) return startParentId;
 
-  let currentParentId: string | null = null;
+  let currentParentId: string | null = startParentId;
 
   for (const part of parts) {
     const folders = useAppStore.getState().folders;
@@ -52,13 +55,14 @@ export async function uploadFiles(
     const extension = getExtension(sanitizedName);
     const mimeType = file.type || getMimeType(extension);
 
-    // Resolve folderId from webkitRelativePath if not explicitly provided
+    // Resolve folderId from webkitRelativePath or relativePath if present
     let fileFolderId = folderId;
-    if (!fileFolderId && file.webkitRelativePath) {
-      const parts = file.webkitRelativePath.split('/');
+    const relPath = file.webkitRelativePath || (file as any).relativePath;
+    if (relPath) {
+      const parts = relPath.split('/');
       if (parts.length > 1) {
         const folderParts = parts.slice(0, parts.length - 1);
-        fileFolderId = await ensureFolderPath(folderParts);
+        fileFolderId = await ensureFolderPath(folderParts, folderId);
       }
     }
 
