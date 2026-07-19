@@ -94,6 +94,19 @@ router.post('/import', async (req, res) => {
   }
 });
 
+// Bulk Delete folders
+router.post('/bulk-delete', async (req, res) => {
+  try {
+    const { ids } = req.body;
+    for (const id of ids) {
+      await deleteFolderAndContents(id);
+    }
+    res.json({ message: 'Folders deleted successfully' });
+  } catch (error) {
+    res.status(500).json({ error: error.message });
+  }
+});
+
 // Clear All Folders (App Reset)
 router.post('/clear-all', async (req, res) => {
   try {

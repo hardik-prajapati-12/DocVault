@@ -49,6 +49,7 @@ export const FoldersPage: React.FC = () => {
   const clearSelection = useAppStore((s) => s.clearSelection);
   const setSelectionMode = useAppStore((s) => s.setSelectionMode);
   const selectAll = useAppStore((s) => s.selectAll);
+  const toggleSelection = useAppStore((s) => s.toggleSelection);
 
   // Sync active folder with store for global file uploads
   React.useEffect(() => {
@@ -77,6 +78,13 @@ export const FoldersPage: React.FC = () => {
       (d) => d.folderId === currentParentId && d.isDeleted === 0 && d.isArchived === 0
     );
   }, [documents, currentParentId, folderId]);
+
+  const currentItems = useMemo(() => {
+    return [
+      ...currentFolders.map((f) => ({ id: f.id, type: 'folder' })),
+      ...currentFiles.map((d) => ({ id: d.id, type: 'file' })),
+    ];
+  }, [currentFolders, currentFiles]);
 
   // Active folder details
   const currentFolder = useMemo(() => {
@@ -143,36 +151,98 @@ export const FoldersPage: React.FC = () => {
     });
   };
 
+  const getFilesFromFoldersAndFiles = (ids: Set<string>): string[] => {
+    const fileIds: string[] = [];
+    ids.forEach((id) => {
+      if (documents.some((d) => d.id === id)) {
+        fileIds.push(id);
+      } else if (folders.some((f) => f.id === id)) {
+        const collectFolderFiles = (fId: string) => {
+          documents.forEach((d) => {
+            if (d.folderId === fId && d.isDeleted === 0) {
+              fileIds.push(d.id);
+            }
+          });
+          folders.forEach((subF) => {
+            if (subF.parentId === fId) {
+              collectFolderFiles(subF.id);
+            }
+          });
+        };
+        collectFolderFiles(id);
+      }
+    });
+    return Array.from(new Set(fileIds));
+  };
+
   const handleBulkDelete = async () => {
     if (selectedIds.size === 0) return;
-    await bulkSoftDelete(Array.from(selectedIds));
-    toast.success(`${selectedIds.size} files moved to trash`);
+    const selectedArray = Array.from(selectedIds);
+    const folderIds = selectedArray.filter((id) => folders.some((f) => f.id === id));
+    const fileIds = selectedArray.filter((id) => documents.some((d) => d.id === id));
+
+    try {
+      if (folderIds.length > 0) {
+        await fetch('/api/folders/bulk-delete', {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({ ids: folderIds }),
+        });
+      }
+
+      if (fileIds.length > 0) {
+        await bulkSoftDelete(fileIds);
+      }
+
+      toast.success('Deleted selected folders and files');
+    } catch (err: any) {
+      toast.error(err.message || 'Failed to delete some items');
+    }
+
     clearSelection();
+    await useAppStore.getState().fetchData();
   };
 
   const handleBulkFavorite = async () => {
-    if (selectedIds.size === 0) return;
-    await bulkFavorite(Array.from(selectedIds), 1);
-    toast.success(`Added ${selectedIds.size} files to favorites`);
+    const fileIds = getFilesFromFoldersAndFiles(selectedIds);
+    if (fileIds.length === 0) {
+      toast.error('No files found to favorite');
+      clearSelection();
+      return;
+    }
+    await bulkFavorite(fileIds, 1);
+    toast.success(`Added ${fileIds.length} files to favorites`);
     clearSelection();
   };
 
   const handleBulkArchive = async () => {
-    if (selectedIds.size === 0) return;
-    await bulkArchive(Array.from(selectedIds), 1);
-    toast.success(`Archived ${selectedIds.size} files`);
+    const fileIds = getFilesFromFoldersAndFiles(selectedIds);
+    if (fileIds.length === 0) {
+      toast.error('No files found to archive');
+      clearSelection();
+      return;
+    }
+    await bulkArchive(fileIds, 1);
+    toast.success(`Archived ${fileIds.length} files`);
     clearSelection();
   };
 
   const handleBulkDownload = async () => {
-    if (selectedIds.size === 0) return;
+    const fileIds = getFilesFromFoldersAndFiles(selectedIds);
+    if (fileIds.length === 0) {
+      toast.error('No files found to download');
+      clearSelection();
+      return;
+    }
+
     toast.loading('Preparing download...', { id: 'bulk-dl' });
     const files: { name: string; blob: Blob }[] = [];
-    for (const id of selectedIds) {
+    for (const id of fileIds) {
       const doc = documents.find((f) => f.id === id);
       const blob = await getFileBlob(id);
       if (doc && blob) files.push({ name: doc.name, blob });
     }
+
     if (files.length > 0) {
       const zip = await createZipArchive(files);
       const url = URL.createObjectURL(zip);
@@ -181,14 +251,17 @@ export const FoldersPage: React.FC = () => {
       a.download = `docvault-${files.length}files.zip`;
       a.click();
       URL.revokeObjectURL(url);
+      toast.success(`Downloaded ${files.length} files`, { id: 'bulk-dl' });
+    } else {
+      toast.error('Could not retrieve file data', { id: 'bulk-dl' });
     }
-    toast.success(`Downloaded ${files.length} files`, { id: 'bulk-dl' });
     clearSelection();
   };
 
   // Context Menu builder helper
   const FolderCardWithContext: React.FC<{ folder: Folder }> = ({ folder }) => {
     const contextMenuRef = useRef<ContextMenuRef>(null);
+    const isSelected = selectedIds.has(folder.id);
 
     const items: ContextMenuItem[] = [
       {
@@ -208,6 +281,15 @@ export const FoldersPage: React.FC = () => {
       },
     ];
 
+    const handleClick = (e: React.MouseEvent) => {
+      if (selectionMode) {
+        e.preventDefault();
+        toggleSelection(folder.id);
+      } else {
+        navigate(`/folders/${folder.id}`);
+      }
+    };
+
     return (
       <ContextMenu ref={contextMenuRef} items={items}>
         <motion.div
@@ -216,23 +298,34 @@ export const FoldersPage: React.FC = () => {
           animate={{ opacity: 1, scale: 1 }}
           exit={{ opacity: 0, scale: 0.95 }}
           transition={{ duration: 0.15 }}
-          onClick={() => navigate(`/folders/${folder.id}`)}
-          className="glass-card p-4 cursor-pointer group relative flex flex-col justify-between h-32 select-none hover:ring-2 hover:ring-[var(--accent)] transition-all"
+          onClick={handleClick}
+          className={`glass-card p-4 cursor-pointer group relative flex flex-col justify-between h-32 select-none hover:ring-2 hover:ring-[var(--accent)] transition-all
+            ${isSelected ? 'ring-2 ring-[var(--accent)] bg-[var(--accent-dim)]' : ''}`}
         >
           <div className="flex items-start justify-between">
-            <div className="w-10 h-10 rounded-xl bg-[var(--accent-dim)] flex items-center justify-center text-[var(--accent)]">
-              <FolderIcon className="w-5 h-5 fill-[var(--accent)]" />
-            </div>
-            <button
-              onClick={(e) => {
-                e.stopPropagation();
-                contextMenuRef.current?.showMenu(e);
-              }}
-              className="p-1.5 rounded-lg opacity-0 group-hover:opacity-100 hover:bg-[var(--bg-tertiary)] transition-all cursor-pointer"
-              title="Folder actions"
-            >
-              <MoreVertical className="w-4 h-4 text-[var(--text-secondary)]" />
-            </button>
+            {selectionMode ? (
+              <div className={`w-5 h-5 rounded-md border-2 flex items-center justify-center transition-colors
+                ${isSelected ? 'bg-[var(--accent)] border-[var(--accent)]' : 'border-[var(--text-tertiary)]'}`}
+              >
+                {isSelected && <span className="text-white text-xs font-bold">✓</span>}
+              </div>
+            ) : (
+              <div className="w-10 h-10 rounded-xl bg-[var(--accent-dim)] flex items-center justify-center text-[var(--accent)]">
+                <FolderIcon className="w-5 h-5 fill-[var(--accent)]" />
+              </div>
+            )}
+            {!selectionMode && (
+              <button
+                onClick={(e) => {
+                  e.stopPropagation();
+                  contextMenuRef.current?.showMenu(e);
+                }}
+                className="p-1.5 rounded-lg opacity-0 group-hover:opacity-100 hover:bg-[var(--bg-tertiary)] transition-all cursor-pointer"
+                title="Folder actions"
+              >
+                <MoreVertical className="w-4 h-4 text-[var(--text-secondary)]" />
+              </button>
+            )}
           </div>
           <div className="mt-2 min-w-0">
             <h4 className="text-sm font-semibold text-[var(--text-primary)] truncate" title={folder.name}>
@@ -284,7 +377,7 @@ export const FoldersPage: React.FC = () => {
         </div>
 
         <div className="flex gap-2.5 self-start sm:self-auto flex-wrap sm:flex-nowrap">
-          {folderId && currentFiles.length > 0 && (
+          {((folderId && currentFiles.length > 0) || (!folderId && currentFolders.length > 0)) && (
             <Button
               onClick={() => {
                 if (selectionMode) {
@@ -297,7 +390,7 @@ export const FoldersPage: React.FC = () => {
               icon={selectionMode ? <X className="w-4 h-4" /> : <CheckSquare className="w-4 h-4" />}
               variant={selectionMode ? 'ghost' : 'secondary'}
             >
-              {selectionMode ? 'Close Selection' : 'Select Files'}
+              {selectionMode ? 'Close Selection' : (folderId ? 'Select Files' : 'Select Folders')}
             </Button>
           )}
           {folderId && (
@@ -375,7 +468,7 @@ export const FoldersPage: React.FC = () => {
                 <Button
                   variant="secondary"
                   size="sm"
-                  onClick={() => selectAll(currentFiles.map((f) => f.id))}
+                  onClick={() => selectAll(currentItems.map((item) => item.id))}
                 >
                   Select All
                 </Button>
