@@ -348,10 +348,15 @@ router.get('/:id/file', async (req, res) => {
       return res.status(404).json({ error: 'Document not found' });
     }
 
+    const isDownload = req.query.download === 'true';
+
     // 1. Try serving from local disk first
     if (doc.opfsPath) {
       const localPath = path.join('uploads', doc.opfsPath);
       if (fs.existsSync(localPath)) {
+        if (isDownload) {
+          res.setHeader('Content-Disposition', `attachment; filename="${encodeURIComponent(doc.name)}"`);
+        }
         return res.sendFile(path.resolve(localPath));
       }
     }
@@ -406,6 +411,10 @@ router.get('/:id/file', async (req, res) => {
         res.setHeader('Content-Type', doc.mimeType || cloudinaryRes.headers['content-type'] || 'application/octet-stream');
         if (cloudinaryRes.headers['content-length']) {
           res.setHeader('Content-Length', cloudinaryRes.headers['content-length']);
+        }
+
+        if (isDownload) {
+          res.setHeader('Content-Disposition', `attachment; filename="${encodeURIComponent(doc.name)}"`);
         }
 
         cloudinaryRes.pipe(res);

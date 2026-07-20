@@ -147,16 +147,12 @@ export const DownloadDialog: React.FC = () => {
     onClose();
   };
 
-  const handleDownloadOriginal = async () => {
-    if (!file || !fileId) return;
-    const blob = await getFileBlob(fileId);
-    if (!blob) return;
-    const url = URL.createObjectURL(blob);
+  const handleDownloadOriginal = () => {
+    if (!file) return;
     const a = document.createElement('a');
-    a.href = url;
+    a.href = `/api/documents/${file.id}/file?download=true`;
     a.download = file.name;
     a.click();
-    URL.revokeObjectURL(url);
     onClose();
   };
 
