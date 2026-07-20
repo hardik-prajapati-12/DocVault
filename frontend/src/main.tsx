@@ -2,7 +2,7 @@ import JSZip from 'jszip';
 if (typeof window !== 'undefined') {
   (window as any).JSZip = JSZip;
 
-  // Clear stale service workers from previous offline version
+  // Clear stale service workers from previous version
   if ('serviceWorker' in navigator) {
     navigator.serviceWorker.getRegistrations().then((registrations) => {
       for (const registration of registrations) {
