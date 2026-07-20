@@ -384,47 +384,14 @@ export function getFileUrl(doc: DocFile): string {
  * Get file binary as a Blob.
  */
 export async function getFileBlob(id: string): Promise<Blob | null> {
-  const doc = useAppStore.getState().documents.find((d) => d.id === id);
-  if (!doc) return null;
-
-  // Compile list of possible URLs to try in order of preference
-  const urlsToTry: string[] = [];
-
-  // 1. Relative opfsPath (fastest local proxy)
-  if (doc.opfsPath) {
-    urlsToTry.push(`/uploads/${doc.opfsPath}`);
-  }
-
-  // 2. Persistent Cloudinary URL
-  if (doc.cloudinaryUrl) {
-    urlsToTry.push(doc.cloudinaryUrl);
-  }
-
-  // 3. Original local URL
-  if (doc.localUrl) {
-    urlsToTry.push(doc.localUrl);
-    // Also try HTTPS version of local URL if site is served over HTTPS to prevent Mixed Content blocking
-    if (window.location.protocol === 'https:' && doc.localUrl.startsWith('http://')) {
-      urlsToTry.push(doc.localUrl.replace('http://', 'https://'));
+  try {
+    const res = await fetch(`/api/documents/${id}/file`);
+    if (res.ok) {
+      return await res.blob();
     }
+  } catch (error) {
+    console.warn(`Failed to fetch file blob for document ${id}:`, error);
   }
-
-  const uniqueUrls = Array.from(new Set(urlsToTry.filter(Boolean)));
-
-  for (const url of uniqueUrls) {
-    try {
-      const res = await fetch(url);
-      if (res.ok) {
-        const blob = await res.blob();
-        if (blob && blob.size > 0) {
-          return blob;
-        }
-      }
-    } catch (error) {
-      console.warn(`Failed to fetch file blob from: ${url}`, error);
-    }
-  }
-
   return null;
 }
 

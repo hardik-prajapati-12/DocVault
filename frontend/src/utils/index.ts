@@ -193,6 +193,10 @@ export function isPdfExtension(ext: string): boolean {
   return ext.toLowerCase() === 'pdf';
 }
 
+export function isOfficeExtension(ext: string): boolean {
+  return ['doc', 'docx', 'xls', 'xlsx', 'ppt', 'pptx'].includes(ext.toLowerCase());
+}
+
 /**
  * Get syntax highlighter language from file extension.
  */

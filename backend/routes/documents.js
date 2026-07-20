@@ -4,6 +4,8 @@ import { v2 as cloudinary } from 'cloudinary';
 import fs from 'fs';
 import path from 'path';
 import { Folder, DocFile } from '../models.js';
+import https from 'https';
+import http from 'http';
 
 const router = express.Router();
 
@@ -334,6 +336,53 @@ router.post('/bulk-favorite', async (req, res) => {
     );
     res.json({ message: 'Documents favorite status updated' });
   } catch (error) {
+    res.status(500).json({ error: error.message });
+  }
+});
+
+// Get file binary (handles local disk and streaming from Cloudinary as fallback)
+router.get('/:id/file', async (req, res) => {
+  try {
+    const doc = await DocFile.findOne({ id: req.params.id });
+    if (!doc) {
+      return res.status(404).json({ error: 'Document not found' });
+    }
+
+    // 1. Try serving from local disk first
+    if (doc.opfsPath) {
+      const localPath = path.join('uploads', doc.opfsPath);
+      if (fs.existsSync(localPath)) {
+        return res.sendFile(path.resolve(localPath));
+      }
+    }
+
+    // 2. If missing from local disk, fallback to streaming from Cloudinary
+    if (doc.cloudinaryUrl) {
+      console.log(`Local file missing. Fetching from Cloudinary: ${doc.cloudinaryUrl}`);
+      const url = new URL(doc.cloudinaryUrl);
+      const client = url.protocol === 'https:' ? https : http;
+
+      client.get(doc.cloudinaryUrl, (cloudinaryRes) => {
+        if (cloudinaryRes.statusCode >= 400) {
+          return res.status(cloudinaryRes.statusCode).json({ error: 'Failed to retrieve file from cloud storage' });
+        }
+
+        res.setHeader('Content-Type', doc.mimeType || cloudinaryRes.headers['content-type'] || 'application/octet-stream');
+        if (cloudinaryRes.headers['content-length']) {
+          res.setHeader('Content-Length', cloudinaryRes.headers['content-length']);
+        }
+
+        cloudinaryRes.pipe(res);
+      }).on('error', (err) => {
+        console.error('Error streaming from Cloudinary:', err);
+        res.status(500).json({ error: 'Internal server error while retrieving file' });
+      });
+      return;
+    }
+
+    return res.status(404).json({ error: 'File data not found on server or cloud' });
+  } catch (error) {
+    console.error('Error retrieving file endpoint:', error);
     res.status(500).json({ error: error.message });
   }
 });

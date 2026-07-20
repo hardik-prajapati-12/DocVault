@@ -3,7 +3,7 @@ import { motion, AnimatePresence } from 'framer-motion';
 import { X, Download, ChevronLeft, ChevronRight, Maximize2, Star, Edit3, Trash2, FileWarning } from 'lucide-react';
 import { useAppStore } from '@/store/app-store';
 import { getFileBlob, getFileUrl, toggleFavorite, softDeleteDocument } from '@/services/file-service';
-import { formatBytes, formatRelativeDate, isImageExtension, isVideoExtension, isAudioExtension, isTextExtension, isPdfExtension, getLanguageForExtension, lazyWithRetry } from '@/utils';
+import { formatBytes, formatRelativeDate, isImageExtension, isVideoExtension, isAudioExtension, isTextExtension, isPdfExtension, isOfficeExtension, getLanguageForExtension, lazyWithRetry } from '@/utils';
 import { FileIcon } from '@/components/files/FileIcon';
 import toast from 'react-hot-toast';
 import { useConfirmStore } from '@/store/confirm-store';
@@ -41,8 +41,13 @@ export const PreviewPanel: React.FC = () => {
                    file.extension.toLowerCase() === 'html';
 
     const isPdf = file.extension.toLowerCase() === 'pdf';
+    const isOffice = isOfficeExtension(file.extension);
 
-    const fileUrl = getFileUrl(file);
+    let fileUrl = getFileUrl(file);
+    if (isOffice) {
+      const publicUrl = file.cloudinaryUrl || (file.localUrl && !file.localUrl.includes('localhost') ? file.localUrl : '');
+      fileUrl = publicUrl ? `https://view.officeapps.live.com/op/embed.aspx?src=${encodeURIComponent(publicUrl)}` : '';
+    }
 
     if (isText || isPdf) {
       setLoading(true);
@@ -72,7 +77,7 @@ export const PreviewPanel: React.FC = () => {
         }
       });
     } else {
-      // Direct URL preview bypasses CORS/fetch constraints for images, videos, and audio
+      // Direct URL preview bypasses CORS/fetch constraints for images, videos, audio, and Office documents
       setObjectUrl(fileUrl);
       setLoading(false);
     }
@@ -180,6 +185,33 @@ export const PreviewPanel: React.FC = () => {
         <iframe
           src={objectUrl}
           className="w-full h-full border-0 rounded-lg"
+          title={file.name}
+        />
+      );
+    }
+
+    // Office Documents (Word, Excel, PowerPoint)
+    if (isOfficeExtension(file.extension)) {
+      if (!objectUrl) {
+        return (
+          <div className="flex flex-col items-center justify-center h-full gap-4 text-center p-8">
+            <FileWarning className="w-16 h-16 text-[var(--text-tertiary)]" />
+            <div>
+              <h3 className="text-lg font-semibold text-[var(--text-primary)] mb-1">Preview Unavailable</h3>
+              <p className="text-sm text-[var(--text-secondary)]">
+                Office document previews require a public cloud URL.
+              </p>
+              <p className="text-xs text-[var(--text-tertiary)] mt-2">
+                You can download this file to open it.
+              </p>
+            </div>
+          </div>
+        );
+      }
+      return (
+        <iframe
+          src={objectUrl}
+          className="w-full h-full border-0 rounded-lg bg-white"
           title={file.name}
         />
       );
