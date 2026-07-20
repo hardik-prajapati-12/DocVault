@@ -1,6 +1,29 @@
 import JSZip from 'jszip';
 if (typeof window !== 'undefined') {
   (window as any).JSZip = JSZip;
+
+  // Clear stale service workers from previous offline version
+  if ('serviceWorker' in navigator) {
+    navigator.serviceWorker.getRegistrations().then((registrations) => {
+      for (const registration of registrations) {
+        registration.unregister().then((success) => {
+          if (success) {
+            console.log('Unregistered stale service worker');
+            window.location.reload();
+          }
+        });
+      }
+    });
+  }
+
+  // Clear Cache Storage to prevent caching of old HTML/JS bundles
+  if ('caches' in window) {
+    caches.keys().then((keys) => {
+      keys.forEach((key) => {
+        caches.delete(key);
+      });
+    });
+  }
 }
 
 import { StrictMode } from 'react';
