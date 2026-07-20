@@ -372,23 +372,62 @@ export async function replaceFileContent(id: string, newFile: File): Promise<voi
 }
 
 /**
+ * Resolves the best available URL for a document file.
+ */
+export function getFileUrl(doc: DocFile): string {
+  if (doc.cloudinaryUrl) return doc.cloudinaryUrl;
+  if (doc.opfsPath) return `/uploads/${doc.opfsPath}`;
+  return doc.localUrl || '';
+}
+
+/**
  * Get file binary as a Blob.
  */
 export async function getFileBlob(id: string): Promise<Blob | null> {
   const doc = useAppStore.getState().documents.find((d) => d.id === id);
   if (!doc) return null;
-  const url = doc.localUrl || doc.cloudinaryUrl;
-  if (!url) return null;
 
-  try {
-    const res = await fetch(url);
-    if (!res.ok) return null;
-    return await res.blob();
-  } catch (error) {
-    console.error('Error fetching file blob:', error);
-    return null;
+  // Compile list of possible URLs to try in order of preference
+  const urlsToTry: string[] = [];
+
+  // 1. Relative opfsPath (fastest local proxy)
+  if (doc.opfsPath) {
+    urlsToTry.push(`/uploads/${doc.opfsPath}`);
   }
+
+  // 2. Persistent Cloudinary URL
+  if (doc.cloudinaryUrl) {
+    urlsToTry.push(doc.cloudinaryUrl);
+  }
+
+  // 3. Original local URL
+  if (doc.localUrl) {
+    urlsToTry.push(doc.localUrl);
+    // Also try HTTPS version of local URL if site is served over HTTPS to prevent Mixed Content blocking
+    if (window.location.protocol === 'https:' && doc.localUrl.startsWith('http://')) {
+      urlsToTry.push(doc.localUrl.replace('http://', 'https://'));
+    }
+  }
+
+  const uniqueUrls = Array.from(new Set(urlsToTry.filter(Boolean)));
+
+  for (const url of uniqueUrls) {
+    try {
+      const res = await fetch(url);
+      if (res.ok) {
+        const blob = await res.blob();
+        if (blob && blob.size > 0) {
+          return blob;
+        }
+      }
+    } catch (error) {
+      console.warn(`Failed to fetch file blob from: ${url}`, error);
+    }
+  }
+
+  return null;
 }
+
 
 /**
  * Bulk soft-delete multiple documents.

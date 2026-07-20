@@ -2,7 +2,7 @@ import React, { useState, useEffect, Suspense } from 'react';
 import { motion, AnimatePresence } from 'framer-motion';
 import { X, Download, ChevronLeft, ChevronRight, Maximize2, Star, Edit3, Trash2, FileWarning } from 'lucide-react';
 import { useAppStore } from '@/store/app-store';
-import { getFileBlob, toggleFavorite, softDeleteDocument } from '@/services/file-service';
+import { getFileBlob, getFileUrl, toggleFavorite, softDeleteDocument } from '@/services/file-service';
 import { formatBytes, formatRelativeDate, isImageExtension, isVideoExtension, isAudioExtension, isTextExtension, isPdfExtension, getLanguageForExtension, lazyWithRetry } from '@/utils';
 import { FileIcon } from '@/components/files/FileIcon';
 import toast from 'react-hot-toast';
@@ -28,31 +28,50 @@ export const PreviewPanel: React.FC = () => {
   const [loading, setLoading] = useState(false);
 
   useEffect(() => {
-    if (!fileId) {
+    if (!fileId || !file) {
       setObjectUrl(null);
       setTextContent(null);
+      setLoading(false);
       return;
     }
 
-    setLoading(true);
-    getFileBlob(fileId).then((blob) => {
-      if (!blob) { setLoading(false); return; }
+    const isText = isTextExtension(file.extension) || 
+                   file.extension === 'md' || 
+                   file.extension === 'csv' || 
+                   file.extension === 'html';
 
-      const url = URL.createObjectURL(blob);
-      setObjectUrl(url);
+    const fileUrl = getFileUrl(file);
 
-      // Load text content for text-based files
-      if (file && (isTextExtension(file.extension) || file.extension === 'md' || file.extension === 'csv')) {
-        blob.text().then(setTextContent).catch(() => setTextContent(null));
-      }
-
+    if (isText) {
+      setLoading(true);
+      getFileBlob(fileId).then((blob) => {
+        if (!blob) {
+          setLoading(false);
+          setTextContent(null);
+          return;
+        }
+        blob.text()
+          .then((text) => {
+            setTextContent(text);
+            setLoading(false);
+          })
+          .catch(() => {
+            setTextContent(null);
+            setLoading(false);
+          });
+      });
+    } else {
+      // Direct URL preview bypasses CORS/fetch constraints for images, videos, audio, and PDFs
+      setObjectUrl(fileUrl);
       setLoading(false);
-    });
+    }
 
     return () => {
-      if (objectUrl) URL.revokeObjectURL(objectUrl);
+      if (objectUrl && objectUrl.startsWith('blob:')) {
+        URL.revokeObjectURL(objectUrl);
+      }
     };
-  }, [fileId, file?.extension]);
+  }, [fileId, file]);
 
   const isOpen = !!fileId && !!file;
 
@@ -79,7 +98,28 @@ export const PreviewPanel: React.FC = () => {
   }, [isOpen, currentIndex, allFiles.length]);
 
   const renderPreview = () => {
-    if (loading || !file || !objectUrl) {
+    if (loading || !file) {
+      return (
+        <div className="flex items-center justify-center h-full">
+          <div className="animate-spin w-8 h-8 border-2 border-[var(--accent)] border-t-transparent rounded-full" />
+        </div>
+      );
+    }
+
+    const isText = isTextExtension(file.extension) || 
+                   file.extension === 'md' || 
+                   file.extension === 'csv' || 
+                   file.extension === 'html';
+
+    if (!isText && !objectUrl) {
+      return (
+        <div className="flex items-center justify-center h-full">
+          <div className="animate-spin w-8 h-8 border-2 border-[var(--accent)] border-t-transparent rounded-full" />
+        </div>
+      );
+    }
+
+    if (isText && textContent === null) {
       return (
         <div className="flex items-center justify-center h-full">
           <div className="animate-spin w-8 h-8 border-2 border-[var(--accent)] border-t-transparent rounded-full" />
@@ -91,7 +131,7 @@ export const PreviewPanel: React.FC = () => {
     if (isImageExtension(file.extension)) {
       return (
         <div className="flex items-center justify-center h-full p-4">
-          <img src={objectUrl} alt={file.name} className="max-w-full max-h-full object-contain rounded-lg" />
+          <img src={objectUrl || ''} alt={file.name} className="max-w-full max-h-full object-contain rounded-lg" />
         </div>
       );
     }
@@ -100,7 +140,7 @@ export const PreviewPanel: React.FC = () => {
     if (isVideoExtension(file.extension)) {
       return (
         <div className="flex items-center justify-center h-full p-4">
-          <video src={objectUrl} controls className="max-w-full max-h-full rounded-lg">
+          <video src={objectUrl || ''} controls className="max-w-full max-h-full rounded-lg">
             Your browser does not support video playback.
           </video>
         </div>
@@ -113,7 +153,7 @@ export const PreviewPanel: React.FC = () => {
         <div className="flex flex-col items-center justify-center h-full gap-6 p-8">
           <FileIcon extension={file.extension} size={64} />
           <h3 className="text-lg font-semibold text-[var(--text-primary)]">{file.name}</h3>
-          <audio src={objectUrl} controls className="w-full max-w-md" />
+          <audio src={objectUrl || ''} controls className="w-full max-w-md" />
         </div>
       );
     }
@@ -122,7 +162,7 @@ export const PreviewPanel: React.FC = () => {
     if (isPdfExtension(file.extension)) {
       return (
         <iframe
-          src={objectUrl}
+          src={objectUrl || ''}
           className="w-full h-full border-0 rounded-lg"
           title={file.name}
         />
