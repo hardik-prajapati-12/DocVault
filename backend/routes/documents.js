@@ -359,11 +359,47 @@ router.get('/:id/file', async (req, res) => {
     // 2. If missing from local disk, fallback to streaming from Cloudinary
     if (doc.cloudinaryUrl) {
       console.log(`Local file missing. Fetching from Cloudinary: ${doc.cloudinaryUrl}`);
-      const url = new URL(doc.cloudinaryUrl);
-      const client = url.protocol === 'https:' ? https : http;
+      
+      let downloadUrl = doc.cloudinaryUrl;
 
-      client.get(doc.cloudinaryUrl, (cloudinaryRes) => {
+      // Generate authenticated download URL to bypass cloud security restrictions
+      if (cloudinary.config().api_key) {
+        try {
+          const urlParts = doc.cloudinaryUrl.split('/upload/');
+          if (urlParts.length > 1) {
+            const pathParts = urlParts[1].split('/');
+            if (pathParts[0].startsWith('v') && !isNaN(pathParts[0].substring(1))) {
+              pathParts.shift();
+            }
+            const fullPath = pathParts.join('/');
+            const extDotIndex = fullPath.lastIndexOf('.');
+            const publicId = extDotIndex !== -1 ? fullPath.substring(0, extDotIndex) : fullPath;
+            const ext = doc.extension || (extDotIndex !== -1 ? fullPath.substring(extDotIndex + 1) : 'pdf');
+
+            let resourceType = 'image';
+            if (doc.cloudinaryUrl.includes('/raw/')) {
+              resourceType = 'raw';
+            } else if (doc.cloudinaryUrl.includes('/video/')) {
+              resourceType = 'video';
+            }
+
+            downloadUrl = cloudinary.utils.private_download_url(publicId, ext, {
+              resource_type: resourceType,
+              type: 'upload'
+            });
+            console.log(`Generated authenticated download URL: ${downloadUrl}`);
+          }
+        } catch (urlErr) {
+          console.error('Error generating authenticated URL:', urlErr);
+        }
+      }
+
+      const urlObj = new URL(downloadUrl);
+      const client = urlObj.protocol === 'https:' ? https : http;
+
+      client.get(downloadUrl, (cloudinaryRes) => {
         if (cloudinaryRes.statusCode >= 400) {
+          console.error(`Cloudinary returned status code ${cloudinaryRes.statusCode} for URL: ${downloadUrl}`);
           return res.status(cloudinaryRes.statusCode).json({ error: 'Failed to retrieve file from cloud storage' });
         }
 
