@@ -4,10 +4,14 @@ import { v2 as cloudinary } from 'cloudinary';
 import fs from 'fs';
 import path from 'path';
 import { Folder, DocFile } from '../models.js';
+import { authMiddleware } from '../middleware/auth.js';
 import https from 'https';
 import http from 'http';
 
 const router = express.Router();
+
+// Protect all document routes with authentication
+router.use(authMiddleware);
 
 // Ensure local uploads directory exists
 const uploadDir = 'uploads';
@@ -39,7 +43,7 @@ cloudinary.config({
 // Get all documents
 router.get('/', async (req, res) => {
   try {
-    const docs = await DocFile.find({});
+    const docs = await DocFile.find({ userId: req.user.id });
     res.json(docs);
   } catch (error) {
     res.status(500).json({ error: error.message });
@@ -81,6 +85,7 @@ router.post('/upload', upload.single('file'), async (req, res) => {
         size: req.file.size,
         tags: req.body.tags ? JSON.parse(req.body.tags) : [],
         folderId: folderId || null,
+        userId: req.user.id,
         isFavorite: Number(req.body.isFavorite) || 0,
         isArchived: Number(req.body.isArchived) || 0,
         isDeleted: Number(req.body.isDeleted) || 0,
@@ -109,7 +114,7 @@ router.put('/:id', async (req, res) => {
   try {
     const updates = { ...req.body, modifiedAt: new Date() };
     const doc = await DocFile.findOneAndUpdate(
-      { id: req.params.id },
+      { id: req.params.id, userId: req.user.id },
       updates,
       { new: true }
     );
@@ -123,7 +128,7 @@ router.put('/:id', async (req, res) => {
 // Duplicate document
 router.post('/duplicate/:id', async (req, res) => {
   try {
-    const original = await DocFile.findOne({ id: req.params.id });
+    const original = await DocFile.findOne({ id: req.params.id, userId: req.user.id });
     if (!original) return res.status(404).json({ error: 'Original document not found' });
 
     const newId = req.body.newId;
@@ -153,6 +158,7 @@ router.post('/duplicate/:id', async (req, res) => {
       size: original.size,
       tags: original.tags,
       folderId: original.folderId,
+      userId: req.user.id,
       isFavorite: 0,
       isArchived: original.isArchived,
       isDeleted: 0,
@@ -177,7 +183,7 @@ router.post('/duplicate/:id', async (req, res) => {
 // Permanent Delete
 router.delete('/:id/permanent', async (req, res) => {
   try {
-    const doc = await DocFile.findOne({ id: req.params.id });
+    const doc = await DocFile.findOne({ id: req.params.id, userId: req.user.id });
     if (!doc) return res.status(404).json({ error: 'Document not found' });
 
     // 1. Delete local file from disk
@@ -189,7 +195,7 @@ router.delete('/:id/permanent', async (req, res) => {
     }
 
     // 2. Delete from MongoDB
-    await DocFile.deleteOne({ id: req.params.id });
+    await DocFile.deleteOne({ id: req.params.id, userId: req.user.id });
 
     // Note: Deleting from Cloudinary is asynchronous/optional but good practice:
     // If we wanted to, we could extract the public_id and delete it. Let's keep it simple.
@@ -204,7 +210,7 @@ router.post('/bulk-soft-delete', async (req, res) => {
   try {
     const { ids } = req.body;
     await DocFile.updateMany(
-      { id: { $in: ids } },
+      { id: { $in: ids }, userId: req.user.id },
       { isDeleted: 1, deletedAt: new Date(), modifiedAt: new Date() }
     );
     res.json({ message: 'Documents soft deleted' });
@@ -217,7 +223,7 @@ router.post('/bulk-soft-delete', async (req, res) => {
 router.post('/bulk-permanent-delete', async (req, res) => {
   try {
     const { ids } = req.body;
-    const docs = await DocFile.find({ id: { $in: ids } });
+    const docs = await DocFile.find({ id: { $in: ids }, userId: req.user.id });
     for (const doc of docs) {
       if (doc.opfsPath) {
         const filePath = path.join(uploadDir, doc.opfsPath);
@@ -226,7 +232,7 @@ router.post('/bulk-permanent-delete', async (req, res) => {
         }
       }
     }
-    await DocFile.deleteMany({ id: { $in: ids } });
+    await DocFile.deleteMany({ id: { $in: ids }, userId: req.user.id });
     res.json({ message: 'Documents permanently deleted' });
   } catch (error) {
     res.status(500).json({ error: error.message });
@@ -238,7 +244,7 @@ router.post('/bulk-restore', async (req, res) => {
   try {
     const { ids } = req.body;
     await DocFile.updateMany(
-      { id: { $in: ids } },
+      { id: { $in: ids }, userId: req.user.id },
       { isDeleted: 0, deletedAt: null, modifiedAt: new Date() }
     );
     res.json({ message: 'Documents restored' });
@@ -250,7 +256,7 @@ router.post('/bulk-restore', async (req, res) => {
 // Empty trash
 router.post('/empty-trash', async (req, res) => {
   try {
-    const trashedDocs = await DocFile.find({ isDeleted: 1 });
+    const trashedDocs = await DocFile.find({ isDeleted: 1, userId: req.user.id });
     for (const doc of trashedDocs) {
       if (doc.opfsPath) {
         const filePath = path.join(uploadDir, doc.opfsPath);
@@ -259,8 +265,8 @@ router.post('/empty-trash', async (req, res) => {
         }
       }
     }
-    await DocFile.deleteMany({ isDeleted: 1 });
-    await Folder.deleteMany({ isDeleted: 1 });
+    await DocFile.deleteMany({ isDeleted: 1, userId: req.user.id });
+    await Folder.deleteMany({ isDeleted: 1, userId: req.user.id });
     res.json({ message: 'Trash emptied' });
   } catch (error) {
     res.status(500).json({ error: error.message });
@@ -296,7 +302,7 @@ router.post('/import', async (req, res) => {
 // Clear All Documents (App Reset)
 router.post('/clear-all', async (req, res) => {
   try {
-    const docs = await DocFile.find({});
+    const docs = await DocFile.find({ userId: req.user.id });
     for (const doc of docs) {
       if (doc.opfsPath) {
         const filePath = path.join(uploadDir, doc.opfsPath);
@@ -305,7 +311,7 @@ router.post('/clear-all', async (req, res) => {
         }
       }
     }
-    await DocFile.deleteMany({});
+    await DocFile.deleteMany({ userId: req.user.id });
     res.json({ message: 'All documents cleared' });
   } catch (error) {
     res.status(500).json({ error: error.message });
@@ -317,7 +323,7 @@ router.post('/bulk-archive', async (req, res) => {
   try {
     const { ids, isArchived } = req.body;
     await DocFile.updateMany(
-      { id: { $in: ids } },
+      { id: { $in: ids }, userId: req.user.id },
       { isArchived: isArchived !== undefined ? isArchived : 1, modifiedAt: new Date() }
     );
     res.json({ message: 'Documents archived status updated' });
@@ -331,7 +337,7 @@ router.post('/bulk-favorite', async (req, res) => {
   try {
     const { ids, isFavorite } = req.body;
     await DocFile.updateMany(
-      { id: { $in: ids } },
+      { id: { $in: ids }, userId: req.user.id },
       { isFavorite: isFavorite !== undefined ? isFavorite : 1, modifiedAt: new Date() }
     );
     res.json({ message: 'Documents favorite status updated' });
@@ -343,7 +349,7 @@ router.post('/bulk-favorite', async (req, res) => {
 // Get file binary (handles local disk and streaming from Cloudinary as fallback)
 router.get('/:id/file', async (req, res) => {
   try {
-    const doc = await DocFile.findOne({ id: req.params.id });
+    const doc = await DocFile.findOne({ id: req.params.id, userId: req.user.id });
     if (!doc) {
       return res.status(404).json({ error: 'Document not found' });
     }

@@ -26,6 +26,39 @@ if (typeof window !== 'undefined') {
   }
 }
 
+// Global fetch interceptor: auto-attach JWT token and handle 401 redirects
+if (typeof window !== 'undefined') {
+  const originalFetch = window.fetch;
+  window.fetch = async function (input: RequestInfo | URL, init?: RequestInit) {
+    const url = typeof input === 'string' ? input : input instanceof URL ? input.href : (input as Request).url;
+    const isApiCall = url.startsWith('/api/') || url.includes('/api/');
+    const isAuthRoute = url.includes('/api/auth/');
+
+    if (isApiCall && !isAuthRoute) {
+      const token = localStorage.getItem('docvault-auth-token');
+      if (token) {
+        init = init || {};
+        const headers = new Headers(init.headers || {});
+        headers.set('Authorization', `Bearer ${token}`);
+        init.headers = headers;
+      }
+    }
+
+    const response = await originalFetch.call(window, input, init);
+
+    // Auto-redirect to login on 401 (expired/invalid token)
+    if (response.status === 401 && isApiCall && !isAuthRoute) {
+      localStorage.removeItem('docvault-auth-token');
+      localStorage.removeItem('docvault-auth-user');
+      if (!window.location.pathname.startsWith('/login')) {
+        window.location.href = '/login';
+      }
+    }
+
+    return response;
+  };
+}
+
 import { StrictMode } from 'react';
 import { createRoot } from 'react-dom/client';
 import App from './App';

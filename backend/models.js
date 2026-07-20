@@ -1,9 +1,17 @@
 import mongoose from 'mongoose';
 
+const UserSchema = new mongoose.Schema({
+  id: { type: String, required: true, unique: true },
+  username: { type: String, required: true, unique: true },
+  password: { type: String, required: true },
+  createdAt: { type: Date, default: Date.now }
+});
+
 const FolderSchema = new mongoose.Schema({
   id: { type: String, required: true, unique: true },
   name: { type: String, required: true },
   parentId: { type: String, default: null },
+  userId: { type: String, default: 'default-user' },
   isDeleted: { type: Number, enum: [0, 1], default: 0 },
   deletedAt: { type: Date, default: null },
   isFavorite: { type: Number, enum: [0, 1], default: 0 },
@@ -20,6 +28,7 @@ const DocFileSchema = new mongoose.Schema({
   size: { type: Number, required: true },
   tags: { type: [String], default: [] },
   folderId: { type: String, default: null },
+  userId: { type: String, default: 'default-user' },
   isFavorite: { type: Number, enum: [0, 1], default: 0 },
   isArchived: { type: Number, enum: [0, 1], default: 0 },
   isDeleted: { type: Number, enum: [0, 1], default: 0 },
@@ -34,5 +43,6 @@ const DocFileSchema = new mongoose.Schema({
   localUrl: { type: String, default: null }
 });
 
+export const User = mongoose.model('User', UserSchema);
 export const Folder = mongoose.model('Folder', FolderSchema);
 export const DocFile = mongoose.model('DocFile', DocFileSchema);

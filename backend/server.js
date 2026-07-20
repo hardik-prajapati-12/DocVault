@@ -8,6 +8,7 @@ import { fileURLToPath } from 'url';
 
 import docRoutes from './routes/documents.js';
 import folderRoutes from './routes/folders.js';
+import authRoutes from './routes/auth.js';
 
 dotenv.config();
 
@@ -27,6 +28,7 @@ app.use('/uploads', express.static(path.join(__dirname, 'uploads')));
 // Routes
 app.use('/api/documents', docRoutes);
 app.use('/api/folders', folderRoutes);
+app.use('/api/auth', authRoutes);
 
 // Serve static assets from frontend build in production / if built
 const frontendBuildPath = path.join(__dirname, '../frontend/dist');

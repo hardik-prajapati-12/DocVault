@@ -1,7 +1,8 @@
 import React from 'react';
 import {
   Search, Grid3X3, List, SortAsc, Upload,
-  ArrowDownAZ, ArrowUpAZ, Clock, ArrowDown, ArrowUp, FileText
+  ArrowDownAZ, ArrowUpAZ, Clock, ArrowDown, ArrowUp, FileText,
+  LogOut, UserCircle
 } from 'lucide-react';
 import { motion } from 'framer-motion';
 import { useAppStore } from '@/store/app-store';
@@ -46,6 +47,21 @@ export const Header: React.FC = () => {
 
   const [sortOpen, setSortOpen] = React.useState(false);
   const [filterOpen, setFilterOpen] = React.useState(false);
+  const [profileOpen, setProfileOpen] = React.useState(false);
+
+  // Get the logged-in user info
+  const authUser = React.useMemo(() => {
+    try {
+      const raw = localStorage.getItem('docvault-auth-user');
+      return raw ? JSON.parse(raw) : null;
+    } catch { return null; }
+  }, []);
+
+  const handleLogout = () => {
+    localStorage.removeItem('docvault-auth-token');
+    localStorage.removeItem('docvault-auth-user');
+    window.location.href = '/login';
+  };
 
   return (
     <header className="sticky top-0 z-20 glass-strong border-b border-[var(--border-color)]">
@@ -161,6 +177,40 @@ export const Header: React.FC = () => {
           <Upload className="w-4 h-4" />
           <span className="hidden sm:inline">Upload</span>
         </button>
+
+        {/* User Profile / Logout */}
+        <div className="relative">
+          <button
+            onClick={() => { setProfileOpen(!profileOpen); setSortOpen(false); setFilterOpen(false); }}
+            className="flex items-center gap-2 p-2 rounded-xl bg-[var(--bg-input)] border border-[var(--border-color)] text-[var(--text-secondary)] hover:text-[var(--text-primary)] transition-colors cursor-pointer"
+            title="Account"
+          >
+            <UserCircle className="w-5 h-5" />
+            {authUser?.username && (
+              <span className="hidden md:inline text-sm font-medium max-w-[100px] truncate">{authUser.username}</span>
+            )}
+          </button>
+          {profileOpen && (
+            <motion.div
+              initial={{ opacity: 0, y: -4 }}
+              animate={{ opacity: 1, y: 0 }}
+              className="absolute right-0 mt-2 py-1.5 glass-strong rounded-xl shadow-2xl min-w-[160px]"
+            >
+              {authUser?.username && (
+                <div className="px-3.5 py-2 text-xs text-[var(--text-tertiary)] border-b border-[var(--border-color)]">
+                  Signed in as <strong className="text-[var(--text-primary)]">{authUser.username}</strong>
+                </div>
+              )}
+              <button
+                onClick={handleLogout}
+                className="w-full flex items-center gap-2.5 px-3.5 py-2 text-sm text-red-400 hover:bg-red-500/10 transition-colors cursor-pointer"
+              >
+                <LogOut className="w-4 h-4" />
+                Sign Out
+              </button>
+            </motion.div>
+          )}
+        </div>
       </div>
     </header>
   );

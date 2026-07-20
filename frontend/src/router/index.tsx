@@ -1,5 +1,5 @@
 import React, { Suspense } from 'react';
-import { createBrowserRouter, RouterProvider } from 'react-router-dom';
+import { createBrowserRouter, RouterProvider, Navigate, useLocation } from 'react-router-dom';
 import { MainLayout } from '@/components/layout';
 import { RouteErrorBoundary } from '@/components/ui';
 import { lazyWithRetry } from '@/utils';
@@ -11,6 +11,7 @@ const FavoritesPage = lazyWithRetry(() => import('@/pages/FavoritesPage'));
 const ArchivePage = lazyWithRetry(() => import('@/pages/ArchivePage'));
 const TrashPage = lazyWithRetry(() => import('@/pages/TrashPage'));
 const FoldersPage = lazyWithRetry(() => import('@/pages/FoldersPage'));
+const LoginPage = lazyWithRetry(() => import('@/pages/LoginPage'));
 
 const PageLoader = () => (
   <div className="flex items-center justify-center h-64">
@@ -18,10 +19,38 @@ const PageLoader = () => (
   </div>
 );
 
+/**
+ * ProtectedRoute: Checks for a valid JWT token in localStorage.
+ * If no token is found, redirects the user to /login.
+ */
+const ProtectedRoute: React.FC<{ children: React.ReactNode }> = ({ children }) => {
+  const token = localStorage.getItem('docvault-auth-token');
+  const location = useLocation();
+
+  if (!token) {
+    return <Navigate to="/login" state={{ from: location }} replace />;
+  }
+
+  return <>{children}</>;
+};
+
 const router = createBrowserRouter([
   {
+    path: '/login',
+    element: (
+      <Suspense fallback={<PageLoader />}>
+        <LoginPage />
+      </Suspense>
+    ),
+    errorElement: <RouteErrorBoundary />,
+  },
+  {
     path: '/',
-    element: <MainLayout />,
+    element: (
+      <ProtectedRoute>
+        <MainLayout />
+      </ProtectedRoute>
+    ),
     errorElement: <RouteErrorBoundary />,
     children: [
 

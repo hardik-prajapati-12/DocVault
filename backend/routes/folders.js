@@ -1,12 +1,16 @@
 import express from 'express';
 import { Folder, DocFile } from '../models.js';
+import { authMiddleware } from '../middleware/auth.js';
 
 const router = express.Router();
+
+// Protect all folder routes with authentication
+router.use(authMiddleware);
 
 // Get all folders
 router.get('/', async (req, res) => {
   try {
-    const folders = await Folder.find({});
+    const folders = await Folder.find({ userId: req.user.id });
     res.json(folders);
   } catch (error) {
     res.status(500).json({ error: error.message });
@@ -21,6 +25,7 @@ router.post('/', async (req, res) => {
       id,
       name,
       parentId: parentId || null,
+      userId: req.user.id,
       createdAt: new Date(),
       modifiedAt: new Date()
     });
@@ -36,7 +41,7 @@ router.put('/:id', async (req, res) => {
   try {
     const { name } = req.body;
     const folder = await Folder.findOneAndUpdate(
-      { id: req.params.id },
+      { id: req.params.id, userId: req.user.id },
       { name, modifiedAt: new Date() },
       { new: true }
     );
@@ -163,6 +168,7 @@ async function duplicateFolderAndContents(folderId, newParentId, suffix = ' copy
     id: newFolderId,
     name: original.name + suffix,
     parentId: newParentId,
+    userId: original.userId,
     isFavorite: original.isFavorite,
     isArchived: original.isArchived,
     isDeleted: original.isDeleted,
@@ -212,7 +218,7 @@ router.put('/:id/favorite', async (req, res) => {
   try {
     const { isFavorite } = req.body;
     const folder = await Folder.findOneAndUpdate(
-      { id: req.params.id },
+      { id: req.params.id, userId: req.user.id },
       { isFavorite, modifiedAt: new Date() },
       { new: true }
     );
@@ -258,7 +264,7 @@ router.put('/:id/archive', async (req, res) => {
 // Clear All Folders (App Reset)
 router.post('/clear-all', async (req, res) => {
   try {
-    await Folder.deleteMany({});
+    await Folder.deleteMany({ userId: req.user.id });
     res.json({ message: 'All folders cleared' });
   } catch (error) {
     res.status(500).json({ error: error.message });
