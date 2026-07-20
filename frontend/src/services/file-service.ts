@@ -109,6 +109,12 @@ export async function uploadFiles(
         const xhr = new XMLHttpRequest();
         xhr.open('POST', '/api/documents/upload');
 
+        // Attach JWT token for authenticated uploads
+        const token = localStorage.getItem('docvault-auth-token');
+        if (token) {
+          xhr.setRequestHeader('Authorization', `Bearer ${token}`);
+        }
+
         xhr.upload.onprogress = (e) => {
           if (e.lengthComputable) {
             const elapsed = (performance.now() - startTime) / 1000;
