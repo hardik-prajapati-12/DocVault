@@ -4,7 +4,8 @@ import { Modal, Button } from '@/components/ui';
 import { useAppStore } from '@/store/app-store';
 import { getFileBlob } from '@/services/file-service';
 import { CompressionEngine, CancellationToken } from '@/services/compression/compression-engine';
-import { formatBytes } from '@/utils';
+import { formatBytes, isImageExtension, isPdfExtension } from '@/utils';
+import { ImageCompressor } from '@/services/compression/image-compressor';
 import type { CompressionResult } from '@/types';
 import type { CompressionOptions, CompressionStats, CompressionProgress } from '@/services/compression/types';
 
@@ -14,6 +15,10 @@ export const DownloadDialog: React.FC = () => {
   const fileId = useAppStore((s) => s.downloadDialogFileId);
   const setFileId = useAppStore((s) => s.setDownloadDialogFileId);
   const file = useAppStore((s) => s.documents.find((d) => d.id === fileId));
+
+  const isPdf = file ? isPdfExtension(file.extension) : false;
+  const isImage = file ? isImageExtension(file.extension) : false;
+  const canCompress = isPdf || isImage;
 
   const [profile, setProfile] = useState<CompressionProfile>('balanced');
   
@@ -103,27 +108,57 @@ export const DownloadDialog: React.FC = () => {
       const blob = await getFileBlob(fileId);
       if (!blob) throw new Error('File not found in local vault.');
 
-      const options: CompressionOptions = {
-        quality,
-        colorMode,
-        removeMetadata,
-        removeThumbnails,
-        flattenAnnotations,
-        optimizeObjectStreams,
-        ...(profile === 'custom'
-          ? { resolutionScale }
-          : { targetDpi }),
-      };
+      if (isPdf) {
+        const options: CompressionOptions = {
+          quality,
+          colorMode,
+          removeMetadata,
+          removeThumbnails,
+          flattenAnnotations,
+          optimizeObjectStreams,
+          ...(profile === 'custom'
+            ? { resolutionScale }
+            : { targetDpi }),
+        };
 
-      const result = await CompressionEngine.compress(
-        blob,
-        options,
-        (p) => setProgress(p),
-        token
-      );
+        const result = await CompressionEngine.compress(
+          blob,
+          options,
+          (p) => setProgress(p),
+          token
+        );
 
-      setCompressedBlob(result.blob);
-      setStats(result.stats);
+        setCompressedBlob(result.blob);
+        setStats(result.stats);
+      } else if (isImage) {
+        setProgress({ step: 'optimizing', percentage: 50, statusText: 'Optimizing image...' });
+        
+        await new Promise((resolve) => setTimeout(resolve, 100));
+
+        const result = await ImageCompressor.compress(blob, {
+          quality,
+          resolutionScale: profile === 'custom' ? resolutionScale : (profile === 'low' ? 100 : (profile === 'balanced' ? 70 : (profile === 'high' ? 50 : 35))),
+          colorMode
+        });
+
+        const savedBytes = Math.max(0, result.originalSize - result.compressedSize);
+        const savedPercent = result.originalSize > 0 ? Math.round((savedBytes / result.originalSize) * 100) : 0;
+
+        setCompressedBlob(result.blob);
+        setStats({
+          originalSize: result.originalSize,
+          compressedSize: result.compressedSize,
+          savedBytes,
+          savedPercent,
+          compressionRatio: result.originalSize > 0 ? result.compressedSize / result.originalSize : 1,
+          imagesOptimized: 1,
+          avgDpiBefore: 0,
+          avgDpiAfter: 0,
+          metadataRemoved: false,
+          fontsOptimized: false,
+          warnings: []
+        });
+      }
     } catch (error: any) {
       if (error.message !== 'Compression cancelled by user') {
         console.error('Compression failed:', error);
@@ -141,7 +176,11 @@ export const DownloadDialog: React.FC = () => {
     const url = URL.createObjectURL(compressedBlob);
     const a = document.createElement('a');
     a.href = url;
-    a.download = `compressed_${file.name}`;
+    
+    const ext = isImage ? 'jpg' : file.extension;
+    const baseName = file.name.substring(0, file.name.lastIndexOf('.')) || file.name;
+
+    a.download = `compressed_${baseName}.${ext}`;
     a.click();
     URL.revokeObjectURL(url);
     onClose();
@@ -175,49 +214,73 @@ export const DownloadDialog: React.FC = () => {
           {!isCompressing && !stats && (
             <>
               {/* Section B: Compression Preset Profiles */}
-              <div>
-                <label className="text-sm font-semibold text-[var(--text-primary)] mb-2 block">Compression Level</label>
-                <div className="grid grid-cols-5 gap-1.5 p-1 rounded-xl bg-[var(--bg-tertiary)] border border-[var(--border-color)] text-xs font-medium">
-                  {(['low', 'balanced', 'high', 'max', 'custom'] as CompressionProfile[]).map((p) => (
-                    <button
-                      key={p}
-                      onClick={() => setProfile(p)}
-                      className={`py-2 rounded-lg capitalize transition-all cursor-pointer ${
-                        profile === p
-                          ? 'bg-[var(--accent)] text-white shadow-sm'
-                          : 'text-[var(--text-secondary)] hover:text-[var(--text-primary)]'
-                      }`}
-                    >
-                      {p === 'max' ? 'Max' : p}
-                    </button>
-                  ))}
-                </div>
-              </div>
+              {canCompress ? (
+                <>
+                  <div>
+                    <label className="text-sm font-semibold text-[var(--text-primary)] mb-2 block">Compression Level</label>
+                    <div className="grid grid-cols-5 gap-1.5 p-1 rounded-xl bg-[var(--bg-tertiary)] border border-[var(--border-color)] text-xs font-medium">
+                      {(['low', 'balanced', 'high', 'max', 'custom'] as CompressionProfile[]).map((p) => (
+                        <button
+                          key={p}
+                          onClick={() => setProfile(p)}
+                          className={`py-2 rounded-lg capitalize transition-all cursor-pointer ${
+                            profile === p
+                              ? 'bg-[var(--accent)] text-white shadow-sm'
+                              : 'text-[var(--text-secondary)] hover:text-[var(--text-primary)]'
+                          }`}
+                        >
+                          {p === 'max' ? 'Max' : p}
+                        </button>
+                      ))}
+                    </div>
+                  </div>
 
-              {/* Preset details info */}
-              {profile !== 'custom' && (
-                <div className="p-3 rounded-xl bg-[var(--bg-tertiary)]/50 border border-[var(--border-color)]/30 text-xs text-[var(--text-secondary)] space-y-1">
-                  <div className="flex justify-between">
-                    <span>Target Resolution:</span>
-                    <span className="font-semibold text-[var(--text-primary)]">{targetDpi} DPI</span>
-                  </div>
-                  <div className="flex justify-between">
-                    <span>JPEG Quality:</span>
-                    <span className="font-semibold text-[var(--text-primary)]">{quality}%</span>
-                  </div>
-                  <div className="flex justify-between">
-                    <span>Color Profile:</span>
-                    <span className="font-semibold text-[var(--text-primary)] capitalize">{colorMode}</span>
-                  </div>
-                  <div className="flex justify-between">
-                    <span>Metadata Pruning:</span>
-                    <span className="font-semibold text-[var(--text-primary)]">{removeMetadata ? 'Enabled' : 'Disabled'}</span>
-                  </div>
+                  {/* Preset details info */}
+                  {profile !== 'custom' && (
+                    <div className="p-3 rounded-xl bg-[var(--bg-tertiary)]/50 border border-[var(--border-color)]/30 text-xs text-[var(--text-secondary)] space-y-1">
+                      {isPdf && (
+                        <div className="flex justify-between">
+                          <span>Target Resolution:</span>
+                          <span className="font-semibold text-[var(--text-primary)]">{targetDpi} DPI</span>
+                        </div>
+                      )}
+                      {isImage && (
+                        <div className="flex justify-between">
+                          <span>Target Resolution Scale:</span>
+                          <span className="font-semibold text-[var(--text-primary)]">
+                            {profile === 'low' ? 100 : (profile === 'balanced' ? 70 : (profile === 'high' ? 50 : 35))}%
+                          </span>
+                        </div>
+                      )}
+                      <div className="flex justify-between">
+                        <span>JPEG Quality:</span>
+                        <span className="font-semibold text-[var(--text-primary)]">{quality}%</span>
+                      </div>
+                      <div className="flex justify-between">
+                        <span>Color Profile:</span>
+                        <span className="font-semibold text-[var(--text-primary)] capitalize">{colorMode}</span>
+                      </div>
+                      {isPdf && (
+                        <div className="flex justify-between">
+                          <span>Metadata Pruning:</span>
+                          <span className="font-semibold text-[var(--text-primary)]">{removeMetadata ? 'Enabled' : 'Disabled'}</span>
+                        </div>
+                      )}
+                    </div>
+                  )}
+                </>
+              ) : (
+                <div className="p-3 rounded-xl bg-[var(--bg-tertiary)]/50 border border-[var(--border-color)] border-dashed text-xs text-[var(--text-secondary)] text-center py-6">
+                  Compression is not supported for .{file.extension.toUpperCase()} files.
+                  <br />
+                  <span className="text-[10px] text-[var(--text-tertiary)] mt-1 block">
+                    You can download the original file directly below.
+                  </span>
                 </div>
               )}
 
               {/* Section C: Custom Options Drawer */}
-              {profile === 'custom' && (
+              {profile === 'custom' && canCompress && (
                 <div className="space-y-4 border-t border-[var(--border-color)] pt-4">
                   {/* Slider 1: Document Quality */}
                   <div className="space-y-2">
@@ -283,46 +346,52 @@ export const DownloadDialog: React.FC = () => {
                       />
                     </label>
 
-                    <label className="flex items-center justify-between p-2.5 rounded-lg bg-[var(--bg-tertiary)] cursor-pointer">
-                      <span>Prune Metadata</span>
-                      <input
-                        type="checkbox"
-                        checked={removeMetadata}
-                        onChange={(e) => setRemoveMetadata(e.target.checked)}
-                        className="rounded border-[var(--border-color)] text-[var(--accent)] focus:ring-[var(--accent)]"
-                      />
-                    </label>
+                    {isPdf && (
+                      <>
+                        <label className="flex items-center justify-between p-2.5 rounded-lg bg-[var(--bg-tertiary)] cursor-pointer">
+                          <span>Prune Metadata</span>
+                          <input
+                            type="checkbox"
+                            checked={removeMetadata}
+                            onChange={(e) => setRemoveMetadata(e.target.checked)}
+                            className="rounded border-[var(--border-color)] text-[var(--accent)] focus:ring-[var(--accent)]"
+                          />
+                        </label>
 
-                    <label className="flex items-center justify-between p-2.5 rounded-lg bg-[var(--bg-tertiary)] cursor-pointer">
-                      <span>Flatten Annotations</span>
-                      <input
-                        type="checkbox"
-                        checked={flattenAnnotations}
-                        onChange={(e) => setFlattenAnnotations(e.target.checked)}
-                        className="rounded border-[var(--border-color)] text-[var(--accent)] focus:ring-[var(--accent)]"
-                      />
-                    </label>
+                        <label className="flex items-center justify-between p-2.5 rounded-lg bg-[var(--bg-tertiary)] cursor-pointer">
+                          <span>Flatten Annotations</span>
+                          <input
+                            type="checkbox"
+                            checked={flattenAnnotations}
+                            onChange={(e) => setFlattenAnnotations(e.target.checked)}
+                            className="rounded border-[var(--border-color)] text-[var(--accent)] focus:ring-[var(--accent)]"
+                          />
+                        </label>
 
-                    <label className="flex items-center justify-between p-2.5 rounded-lg bg-[var(--bg-tertiary)] cursor-pointer">
-                      <span>Object Stream Opt</span>
-                      <input
-                        type="checkbox"
-                        checked={optimizeObjectStreams}
-                        onChange={(e) => setOptimizeObjectStreams(e.target.checked)}
-                        className="rounded border-[var(--border-color)] text-[var(--accent)] focus:ring-[var(--accent)]"
-                      />
-                    </label>
+                        <label className="flex items-center justify-between p-2.5 rounded-lg bg-[var(--bg-tertiary)] cursor-pointer">
+                          <span>Object Stream Opt</span>
+                          <input
+                            type="checkbox"
+                            checked={optimizeObjectStreams}
+                            onChange={(e) => setOptimizeObjectStreams(e.target.checked)}
+                            className="rounded border-[var(--border-color)] text-[var(--accent)] focus:ring-[var(--accent)]"
+                          />
+                        </label>
+                      </>
+                    )}
                   </div>
                 </div>
               )}
 
               {/* Actions: Start Compression */}
               <div className="flex gap-2.5 pt-3">
-                <Button className="flex-1" onClick={handleStartCompression} icon={<RefreshCw className="w-4 h-4" />}>
-                  Run Compression
-                </Button>
-                <Button variant="secondary" onClick={handleDownloadOriginal}>
-                  Original
+                {canCompress && (
+                  <Button className="flex-1" onClick={handleStartCompression} icon={<RefreshCw className="w-4 h-4" />}>
+                    Run Compression
+                  </Button>
+                )}
+                <Button variant="secondary" className={!canCompress ? 'flex-1' : ''} onClick={handleDownloadOriginal}>
+                  {!canCompress ? 'Download Original File' : 'Original'}
                 </Button>
               </div>
             </>
@@ -374,20 +443,32 @@ export const DownloadDialog: React.FC = () => {
                   <span className="font-semibold text-[var(--text-primary)] text-sm">Detailed Audit Log</span>
                   <span className="text-emerald-400 font-bold text-sm">-{stats.savedPercent}% Saved</span>
                 </div>
-                <div className="flex justify-between">
-                  <span>Images Optimized:</span>
-                  <span className="font-medium text-[var(--text-primary)]">{stats.imagesOptimized} / {stats.imagesOptimized + stats.warnings.length}</span>
-                </div>
-                <div className="flex justify-between">
-                  <span>DPI Target Scale:</span>
-                  <span className="font-medium text-[var(--text-primary)]">
-                    {stats.avgDpiBefore} → {stats.avgDpiAfter} DPI
-                  </span>
-                </div>
-                <div className="flex justify-between">
-                  <span>Metadata Dictionaries Pruned:</span>
-                  <span className="font-medium text-[var(--text-primary)]">{stats.metadataRemoved ? 'Yes' : 'No'}</span>
-                </div>
+                {isPdf && (
+                  <>
+                    <div className="flex justify-between">
+                      <span>Images Optimized:</span>
+                      <span className="font-medium text-[var(--text-primary)]">{stats.imagesOptimized} / {stats.imagesOptimized + stats.warnings.length}</span>
+                    </div>
+                    {stats.avgDpiBefore > 0 && (
+                      <div className="flex justify-between">
+                        <span>DPI Target Scale:</span>
+                        <span className="font-medium text-[var(--text-primary)]">
+                          {stats.avgDpiBefore} → {stats.avgDpiAfter} DPI
+                        </span>
+                      </div>
+                    )}
+                    <div className="flex justify-between">
+                      <span>Metadata Dictionaries Pruned:</span>
+                      <span className="font-medium text-[var(--text-primary)]">{stats.metadataRemoved ? 'Yes' : 'No'}</span>
+                    </div>
+                  </>
+                )}
+                {isImage && (
+                  <div className="flex justify-between">
+                    <span>Optimization Quality:</span>
+                    <span className="font-medium text-[var(--text-primary)]">{quality}% Quality</span>
+                  </div>
+                )}
                 <div className="flex justify-between">
                   <span>Compression Ratio:</span>
                   <span className="font-medium text-[var(--text-primary)]">{(stats.compressionRatio * 100).toFixed(1)}% of original</span>
