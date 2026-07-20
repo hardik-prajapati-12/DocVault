@@ -107,17 +107,9 @@ export const PreviewPanel: React.FC = () => {
     }
 
     const isText = isTextExtension(file.extension) || 
-                   file.extension === 'md' || 
-                   file.extension === 'csv' || 
-                   file.extension === 'html';
-
-    if (!isText && !objectUrl) {
-      return (
-        <div className="flex items-center justify-center h-full">
-          <div className="animate-spin w-8 h-8 border-2 border-[var(--accent)] border-t-transparent rounded-full" />
-        </div>
-      );
-    }
+                   file.extension.toLowerCase() === 'md' || 
+                   file.extension.toLowerCase() === 'csv' || 
+                   file.extension.toLowerCase() === 'html';
 
     if (isText && textContent === null) {
       return (
