@@ -36,32 +36,43 @@ export const PreviewPanel: React.FC = () => {
     }
 
     const isText = isTextExtension(file.extension) || 
-                   file.extension === 'md' || 
-                   file.extension === 'csv' || 
-                   file.extension === 'html';
+                   file.extension.toLowerCase() === 'md' || 
+                   file.extension.toLowerCase() === 'csv' || 
+                   file.extension.toLowerCase() === 'html';
+
+    const isPdf = file.extension.toLowerCase() === 'pdf';
 
     const fileUrl = getFileUrl(file);
 
-    if (isText) {
+    if (isText || isPdf) {
       setLoading(true);
       getFileBlob(fileId).then((blob) => {
         if (!blob) {
           setLoading(false);
           setTextContent(null);
+          setObjectUrl(null);
           return;
         }
-        blob.text()
-          .then((text) => {
-            setTextContent(text);
-            setLoading(false);
-          })
-          .catch(() => {
-            setTextContent(null);
-            setLoading(false);
-          });
+
+        const url = URL.createObjectURL(blob);
+        setObjectUrl(url);
+
+        if (isText) {
+          blob.text()
+            .then((text) => {
+              setTextContent(text);
+              setLoading(false);
+            })
+            .catch(() => {
+              setTextContent(null);
+              setLoading(false);
+            });
+        } else {
+          setLoading(false);
+        }
       });
     } else {
-      // Direct URL preview bypasses CORS/fetch constraints for images, videos, audio, and PDFs
+      // Direct URL preview bypasses CORS/fetch constraints for images, videos, and audio
       setObjectUrl(fileUrl);
       setLoading(false);
     }
@@ -152,9 +163,22 @@ export const PreviewPanel: React.FC = () => {
 
     // PDF
     if (isPdfExtension(file.extension)) {
+      if (!objectUrl) {
+        return (
+          <div className="flex flex-col items-center justify-center h-full gap-4 text-center p-8">
+            <FileWarning className="w-16 h-16 text-[var(--text-tertiary)]" />
+            <div>
+              <h3 className="text-lg font-semibold text-[var(--text-primary)] mb-1">Failed to load PDF</h3>
+              <p className="text-sm text-[var(--text-secondary)]">
+                The PDF file could not be retrieved from the server.
+              </p>
+            </div>
+          </div>
+        );
+      }
       return (
         <iframe
-          src={objectUrl || ''}
+          src={objectUrl}
           className="w-full h-full border-0 rounded-lg"
           title={file.name}
         />
