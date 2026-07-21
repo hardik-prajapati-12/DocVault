@@ -1,6 +1,6 @@
 import React, { useState, useEffect } from 'react';
 import { useNavigate, useSearchParams } from 'react-router-dom';
-import { Lock, User, Eye, EyeOff, ArrowRight, Loader2, Home } from 'lucide-react';
+import { Lock, User, Eye, EyeOff, ArrowRight, Loader2, Home, Mail } from 'lucide-react';
 
 type AuthMode = 'login' | 'register';
 
@@ -18,6 +18,7 @@ const LoginPage: React.FC = () => {
     }
   }, [searchParams]);
   const [username, setUsername] = useState('');
+  const [email, setEmail] = useState('');
   const [password, setPassword] = useState('');
   const [confirmPassword, setConfirmPassword] = useState('');
   const [showPassword, setShowPassword] = useState(false);
@@ -33,9 +34,20 @@ const LoginPage: React.FC = () => {
       return;
     }
 
-    if (mode === 'register' && password !== confirmPassword) {
-      setError('Passwords do not match');
-      return;
+    if (mode === 'register') {
+      if (!email.trim()) {
+        setError('Please enter your email address');
+        return;
+      }
+      const emailRegex = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
+      if (!emailRegex.test(email.trim())) {
+        setError('Please provide a valid original email address');
+        return;
+      }
+      if (password !== confirmPassword) {
+        setError('Passwords do not match');
+        return;
+      }
     }
 
     if (password.length < 6) {
@@ -47,10 +59,14 @@ const LoginPage: React.FC = () => {
 
     try {
       const endpoint = mode === 'login' ? '/api/auth/login' : '/api/auth/register';
+      const bodyPayload = mode === 'login' 
+        ? { username: username.trim(), password }
+        : { username: username.trim(), email: email.trim(), password };
+
       const res = await fetch(endpoint, {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ username: username.trim(), password }),
+        body: JSON.stringify(bodyPayload),
       });
 
       const data = await res.json();
@@ -67,6 +83,8 @@ const LoginPage: React.FC = () => {
 
       // Navigate to dashboard
       navigate('/', { replace: true });
+      // Force re-render of global app elements by reloading
+      setTimeout(() => window.location.reload(), 100);
     } catch (err) {
       setError('Network error. Please try again.');
       setLoading(false);
@@ -115,13 +133,13 @@ const LoginPage: React.FC = () => {
           )}
 
           <div className="login-field">
-            <label htmlFor="username">Username</label>
+            <label htmlFor="username">{mode === 'login' ? 'Username or Email' : 'Username'}</label>
             <div className="login-input-wrap">
               <User size={18} className="login-input-icon" />
               <input
                 id="username"
                 type="text"
-                placeholder="Enter your username"
+                placeholder={mode === 'login' ? 'Enter username or email' : 'Enter your username'}
                 value={username}
                 onChange={(e) => setUsername(e.target.value)}
                 autoComplete="username"
@@ -129,6 +147,23 @@ const LoginPage: React.FC = () => {
               />
             </div>
           </div>
+
+          {mode === 'register' && (
+            <div className="login-field">
+              <label htmlFor="email">Email</label>
+              <div className="login-input-wrap">
+                <Mail size={18} className="login-input-icon" />
+                <input
+                  id="email"
+                  type="email"
+                  placeholder="Enter your email"
+                  value={email}
+                  onChange={(e) => setEmail(e.target.value)}
+                  autoComplete="email"
+                />
+              </div>
+            </div>
+          )}
 
           <div className="login-field">
             <label htmlFor="password">Password</label>

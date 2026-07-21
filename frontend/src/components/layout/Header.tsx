@@ -1,8 +1,9 @@
 import React from 'react';
+import { Link } from 'react-router-dom';
 import {
   Search, Grid3X3, List, SortAsc, Upload,
   ArrowDownAZ, ArrowUpAZ, Clock, ArrowDown, ArrowUp, FileText,
-  LogOut, UserCircle, Sparkles, Globe
+  LogOut, UserCircle, Sparkles, Globe, User
 } from 'lucide-react';
 import { motion } from 'framer-motion';
 import { useAppStore } from '@/store/app-store';
@@ -194,7 +195,7 @@ export const Header: React.FC = () => {
           >
             <UserCircle className="w-5 h-5" />
             {authUser?.username && (
-              <span className="hidden md:inline text-sm font-medium max-w-[100px] truncate">{authUser.username}</span>
+              <span className="text-sm font-medium max-w-[120px] truncate">{authUser.username}</span>
             )}
           </button>
           {profileOpen && (
@@ -208,13 +209,14 @@ export const Header: React.FC = () => {
                   Signed in as <strong className="text-[var(--text-primary)]">{authUser.username}</strong>
                 </div>
               )}
-              <a
-                href="/landing"
+              <Link
+                to="/profile"
+                onClick={() => setProfileOpen(false)}
                 className="w-full flex items-center gap-2.5 px-3.5 py-2 text-sm text-[var(--text-primary)] hover:bg-[var(--bg-tertiary)] transition-colors cursor-pointer border-b border-[var(--border-color)]"
               >
-                <Sparkles className="w-4 h-4 text-[var(--accent)]" />
-                Home Showcase
-              </a>
+                <User className="w-4 h-4 text-[var(--accent)]" />
+                Profile
+              </Link>
               <button
                 onClick={handleLogout}
                 className="w-full flex items-center gap-2.5 px-3.5 py-2 text-sm text-red-400 hover:bg-red-500/10 transition-colors cursor-pointer"

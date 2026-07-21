@@ -16,6 +16,7 @@ const LoginPage = lazyWithRetry(() => import('@/pages/LoginPage'));
 const PrivacyPolicyPage = lazyWithRetry(() => import('@/pages/PrivacyPolicyPage'));
 const TermsPage = lazyWithRetry(() => import('@/pages/TermsPage'));
 const SecurityWhitepaperPage = lazyWithRetry(() => import('@/pages/SecurityWhitepaperPage'));
+const ProfilePage = lazyWithRetry(() => import('@/pages/ProfilePage'));
 
 const PageLoader = () => (
   <div className="flex items-center justify-center h-64">
@@ -156,6 +157,14 @@ const router = createBrowserRouter([
         element: (
           <Suspense fallback={<PageLoader />}>
             <FoldersPage />
+          </Suspense>
+        ),
+      },
+      {
+        path: 'profile',
+        element: (
+          <Suspense fallback={<PageLoader />}>
+            <ProfilePage />
           </Suspense>
         ),
       },

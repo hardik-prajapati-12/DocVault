@@ -149,7 +149,7 @@ export const HomePage: React.FC = () => {
   // Get user initials for avatar fallback
   const userInitials = useMemo(() => {
     if (!userData?.username) return '?';
-    return userData.username.slice(0, 2).toUpperCase();
+    return userData.username.slice(0, 1).toUpperCase();
   }, [userData]);
 
   // Profile dropdown state
