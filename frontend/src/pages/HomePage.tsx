@@ -217,10 +217,8 @@ export const HomePage: React.FC = () => {
         <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 h-20 flex items-center justify-between">
           {/* Logo & Brand */}
           <Link to="/" className="flex items-center gap-3 group">
-            <div className="w-10 h-10 rounded-2xl bg-gradient-to-tr from-[var(--accent)] to-indigo-500 p-0.5 shadow-lg shadow-[var(--accent-glow)] group-hover:scale-105 transition-transform duration-300">
-              <div className="w-full h-full bg-[var(--bg-primary)] rounded-[14px] flex items-center justify-center">
-                <FileText className="w-5 h-5 text-[var(--accent)]" />
-              </div>
+            <div className="w-9 h-9 rounded-xl bg-gradient-to-tr from-[var(--accent)] to-indigo-500 flex items-center justify-center text-white shadow-lg shadow-[var(--accent-glow)] group-hover:scale-105 transition-transform duration-300">
+              <FileText className="w-5.5 h-5.5" />
             </div>
             <div>
               <span className="text-xl font-extrabold tracking-tight bg-gradient-to-r from-[var(--text-primary)] via-[var(--text-primary)] to-[var(--text-secondary)] bg-clip-text text-transparent">
@@ -358,12 +356,6 @@ export const HomePage: React.FC = () => {
               </div>
             ) : (
               <>
-                <button
-                  onClick={() => navigate('/login')}
-                  className="px-4 py-2.5 rounded-xl text-sm font-medium text-[var(--text-primary)] hover:bg-[var(--bg-tertiary)] transition-colors cursor-pointer"
-                >
-                  Sign In
-                </button>
                 <button
                   onClick={() => navigate('/login')}
                   className="btn-accent flex items-center gap-2 px-5 py-2.5 rounded-xl text-sm font-semibold shadow-lg shadow-[var(--accent-glow)] cursor-pointer"
