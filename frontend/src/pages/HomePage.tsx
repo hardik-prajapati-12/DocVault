@@ -968,9 +968,9 @@ export const HomePage: React.FC = () => {
           <div className="pt-8 flex flex-col sm:flex-row items-center justify-between gap-4 text-xs text-[var(--text-tertiary)]">
             <p>© {new Date().getFullYear()} DocVault Inc. All rights reserved.</p>
             <div className="flex items-center gap-6">
-              <Link to="/privacy" className="hover:text-[var(--text-secondary)] transition-colors">Privacy Policy</Link>
-              <Link to="/terms" className="hover:text-[var(--text-secondary)] transition-colors">Terms of Service</Link>
-              <Link to="/security-whitepaper" className="hover:text-[var(--text-secondary)] transition-colors">Security Whitepaper</Link>
+              <Link to="/privacy" className="text-[var(--text-secondary)] hover:text-[var(--accent)] hover:underline transition-colors">Privacy Policy</Link>
+              <Link to="/terms" className="text-[var(--text-secondary)] hover:text-[var(--accent)] hover:underline transition-colors">Terms of Service</Link>
+              <Link to="/security-whitepaper" className="text-[var(--text-secondary)] hover:text-[var(--accent)] hover:underline transition-colors">Security Whitepaper</Link>
             </div>
           </div>
         </div>
