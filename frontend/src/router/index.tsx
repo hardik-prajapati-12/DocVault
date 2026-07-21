@@ -5,6 +5,7 @@ import { RouteErrorBoundary } from '@/components/ui';
 import { lazyWithRetry } from '@/utils';
 
 // Lazy load pages for code splitting with reload retry logic
+const HomePage = lazyWithRetry(() => import('@/pages/HomePage'));
 const DashboardPage = lazyWithRetry(() => import('@/pages/DashboardPage'));
 const FilesPage = lazyWithRetry(() => import('@/pages/FilesPage'));
 const FavoritesPage = lazyWithRetry(() => import('@/pages/FavoritesPage'));
@@ -21,20 +22,38 @@ const PageLoader = () => (
 
 /**
  * ProtectedRoute: Checks for a valid JWT token in localStorage.
- * If no token is found, redirects the user to /login.
+ * If no token is found, redirects the user to /landing.
  */
 const ProtectedRoute: React.FC<{ children: React.ReactNode }> = ({ children }) => {
   const token = localStorage.getItem('docvault-auth-token');
   const location = useLocation();
 
   if (!token) {
-    return <Navigate to="/login" state={{ from: location }} replace />;
+    return <Navigate to="/landing" state={{ from: location }} replace />;
   }
 
   return <>{children}</>;
 };
 
 const router = createBrowserRouter([
+  {
+    path: '/landing',
+    element: (
+      <Suspense fallback={<PageLoader />}>
+        <HomePage />
+      </Suspense>
+    ),
+    errorElement: <RouteErrorBoundary />,
+  },
+  {
+    path: '/home',
+    element: (
+      <Suspense fallback={<PageLoader />}>
+        <HomePage />
+      </Suspense>
+    ),
+    errorElement: <RouteErrorBoundary />,
+  },
   {
     path: '/login',
     element: (
