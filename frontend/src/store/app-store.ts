@@ -141,6 +141,8 @@ export const useAppStore = create<AppState>()(
       setDocuments: (documents) => set({ documents }),
       setFolders: (folders) => set({ folders }),
       fetchData: async () => {
+        const token = localStorage.getItem('docvault-auth-token');
+        if (!token) return;
         try {
           const [docsRes, foldersRes] = await Promise.all([
             fetch('/api/documents'),

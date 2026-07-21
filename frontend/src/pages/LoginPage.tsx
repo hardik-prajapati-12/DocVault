@@ -1,12 +1,22 @@
-import React, { useState } from 'react';
-import { useNavigate } from 'react-router-dom';
+import React, { useState, useEffect } from 'react';
+import { useNavigate, useSearchParams } from 'react-router-dom';
 import { Lock, User, Eye, EyeOff, ArrowRight, Loader2, Home } from 'lucide-react';
 
 type AuthMode = 'login' | 'register';
 
 const LoginPage: React.FC = () => {
   const navigate = useNavigate();
+  const [searchParams] = useSearchParams();
   const [mode, setMode] = useState<AuthMode>('login');
+
+  useEffect(() => {
+    const queryMode = searchParams.get('mode') as AuthMode;
+    if (queryMode === 'register' || queryMode === 'login') {
+      setMode(queryMode);
+    } else {
+      setMode('login');
+    }
+  }, [searchParams]);
   const [username, setUsername] = useState('');
   const [password, setPassword] = useState('');
   const [confirmPassword, setConfirmPassword] = useState('');

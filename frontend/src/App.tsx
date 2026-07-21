@@ -114,13 +114,16 @@ const App: React.FC = () => {
   React.useEffect(() => {
     if (!isOnline) return;
 
-    useAppStore.getState().fetchData().catch(console.error);
+    const token = localStorage.getItem('docvault-auth-token');
+    if (token) {
+      useAppStore.getState().fetchData().catch(console.error);
 
-    const { syncProvider, autoSync } = useAppStore.getState();
-    if (syncProvider !== 'none' && autoSync) {
-      import('@/services/sync/sync-service').then(({ SyncService }) => {
-        new SyncService().sync().catch(console.error);
-      });
+      const { syncProvider, autoSync } = useAppStore.getState();
+      if (syncProvider !== 'none' && autoSync) {
+        import('@/services/sync/sync-service').then(({ SyncService }) => {
+          new SyncService().sync().catch(console.error);
+        });
+      }
     }
   }, [isOnline]);
 

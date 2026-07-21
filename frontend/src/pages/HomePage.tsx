@@ -357,7 +357,7 @@ export const HomePage: React.FC = () => {
             ) : (
               <>
                 <button
-                  onClick={() => navigate('/login')}
+                  onClick={() => navigate('/login?mode=register')}
                   className="btn-accent flex items-center gap-2 px-5 py-2.5 rounded-xl text-sm font-semibold shadow-lg shadow-[var(--accent-glow)] cursor-pointer"
                 >
                   Sign Up
@@ -422,7 +422,7 @@ export const HomePage: React.FC = () => {
               className="flex flex-col sm:flex-row items-center justify-center gap-4 pt-2"
             >
               <button
-                onClick={() => navigate(isAuthenticated ? '/' : '/login')}
+                onClick={() => navigate(isAuthenticated ? '/' : '/login?mode=register')}
                 className="w-full sm:w-auto btn-accent flex items-center justify-center gap-2.5 px-8 py-4 rounded-2xl font-bold text-base shadow-xl shadow-[var(--accent-glow)] hover:scale-[1.02] active:scale-[0.98] transition-all cursor-pointer"
               >
                 <Shield className="w-5 h-5" />
