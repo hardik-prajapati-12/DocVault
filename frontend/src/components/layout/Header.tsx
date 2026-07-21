@@ -3,12 +3,11 @@ import { Link } from 'react-router-dom';
 import {
   Search, Grid3X3, List, SortAsc, Upload,
   ArrowDownAZ, ArrowUpAZ, Clock, ArrowDown, ArrowUp, FileText,
-  LogOut, UserCircle, Sparkles, Globe, User
+  LogOut, UserCircle, Sparkles, Globe, User, Filter
 } from 'lucide-react';
 import { motion } from 'framer-motion';
 import { useAppStore } from '@/store/app-store';
 import type { SortOption, FilterOption } from '@/types';
-
 
 const sortOptions: { value: SortOption; label: string; icon: React.ReactNode }[] = [
   { value: 'newest', label: 'Newest First', icon: <Clock className="w-4 h-4" /> },
@@ -92,13 +91,16 @@ export const Header: React.FC = () => {
         <div className="relative">
           <button
             onClick={() => { setFilterOpen(!filterOpen); setSortOpen(false); }}
-            className={`px-3 py-2.5 rounded-xl text-sm font-medium transition-all border cursor-pointer
+            className={`px-3 py-2.5 rounded-xl text-sm font-medium transition-all border cursor-pointer flex items-center gap-1.5
               ${activeFilter !== 'all'
                 ? 'bg-[var(--accent-dim)] border-[var(--accent)] text-[var(--accent)]'
                 : 'bg-[var(--bg-input)] border-[var(--border-color)] text-[var(--text-secondary)] hover:text-[var(--text-primary)]'
               }`}
           >
-            {filterOptions.find((f) => f.value === activeFilter)?.label || 'Filter'}
+            <Filter className="w-4 h-4" />
+            <span className="hidden sm:inline">
+              {filterOptions.find((f) => f.value === activeFilter)?.label || 'Filter'}
+            </span>
           </button>
           {filterOpen && (
             <motion.div
@@ -208,7 +210,7 @@ export const Header: React.FC = () => {
               <UserCircle className="w-5 h-5" />
             )}
             {authUser?.username && (
-              <span className="text-sm font-medium max-w-[120px] truncate">{authUser.username}</span>
+              <span className="hidden md:inline text-sm font-medium max-w-[120px] truncate">{authUser.username}</span>
             )}
           </button>
           {profileOpen && (
