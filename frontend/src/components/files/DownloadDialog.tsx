@@ -8,6 +8,7 @@ import { formatBytes, isImageExtension, isPdfExtension } from '@/utils';
 import { ImageCompressor } from '@/services/compression/image-compressor';
 import type { CompressionResult } from '@/types';
 import type { CompressionOptions, CompressionStats, CompressionProgress } from '@/services/compression/types';
+import toast from 'react-hot-toast';
 
 type CompressionProfile = 'low' | 'balanced' | 'high' | 'max' | 'custom';
 
