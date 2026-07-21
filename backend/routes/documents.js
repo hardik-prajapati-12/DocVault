@@ -371,39 +371,7 @@ router.get('/:id/file', async (req, res) => {
     if (doc.cloudinaryUrl) {
       console.log(`Local file missing. Fetching from Cloudinary: ${doc.cloudinaryUrl}`);
       
-      let downloadUrl = doc.cloudinaryUrl;
-
-      // Generate authenticated download URL to bypass cloud security restrictions
-      if (cloudinary.config().api_key) {
-        try {
-          const urlParts = doc.cloudinaryUrl.split('/upload/');
-          if (urlParts.length > 1) {
-            const pathParts = urlParts[1].split('/');
-            if (pathParts[0].startsWith('v') && !isNaN(pathParts[0].substring(1))) {
-              pathParts.shift();
-            }
-            const fullPath = pathParts.join('/');
-            const extDotIndex = fullPath.lastIndexOf('.');
-            const publicId = extDotIndex !== -1 ? fullPath.substring(0, extDotIndex) : fullPath;
-            const ext = doc.extension || (extDotIndex !== -1 ? fullPath.substring(extDotIndex + 1) : 'pdf');
-
-            let resourceType = 'image';
-            if (doc.cloudinaryUrl.includes('/raw/')) {
-              resourceType = 'raw';
-            } else if (doc.cloudinaryUrl.includes('/video/')) {
-              resourceType = 'video';
-            }
-
-            downloadUrl = cloudinary.utils.private_download_url(publicId, ext, {
-              resource_type: resourceType,
-              type: 'upload'
-            });
-            console.log(`Generated authenticated download URL: ${downloadUrl}`);
-          }
-        } catch (urlErr) {
-          console.error('Error generating authenticated URL:', urlErr);
-        }
-      }
+      const downloadUrl = doc.cloudinaryUrl;
 
       const urlObj = new URL(downloadUrl);
       const client = urlObj.protocol === 'https:' ? https : http;
