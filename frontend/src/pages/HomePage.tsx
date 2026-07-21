@@ -63,10 +63,10 @@ const FEATURES = [
   },
   {
     icon: Layers,
-    title: 'Smart Folders & Tagging',
-    description: 'Organize files into hierarchical cloud folders, assign dynamic color-coded tags, and let intelligent categorization keep your vault structured.',
+    title: 'Hierarchical Folders',
+    description: 'Organize files into nested hierarchical cloud folders to keep your online workspace cleanly structured and navigate your document directories with ease.',
     color: '#14b8a6',
-    badge: 'Auto-Organized'
+    badge: 'Nested Organization'
   },
   {
     icon: Activity,

@@ -9,6 +9,7 @@ import { motion } from 'framer-motion';
 import { useAppStore } from '@/store/app-store';
 import type { SortOption, FilterOption } from '@/types';
 
+
 const sortOptions: { value: SortOption; label: string; icon: React.ReactNode }[] = [
   { value: 'newest', label: 'Newest First', icon: <Clock className="w-4 h-4" /> },
   { value: 'oldest', label: 'Oldest First', icon: <Clock className="w-4 h-4" /> },
