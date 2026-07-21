@@ -224,7 +224,7 @@ export const HomePage: React.FC = () => {
               <span className="text-xl font-extrabold tracking-tight bg-gradient-to-r from-[var(--text-primary)] via-[var(--text-primary)] to-[var(--text-secondary)] bg-clip-text text-transparent">
                 DocVault
               </span>
-              <span className="block text-[10px] uppercase font-bold tracking-widest text-[var(--accent)] -mt-1">
+              <span className="hidden sm:block text-[10px] uppercase font-bold tracking-widest text-[var(--accent)] -mt-1">
                 Online Cloud Platform
               </span>
             </div>
@@ -358,10 +358,10 @@ export const HomePage: React.FC = () => {
               <>
                 <button
                   onClick={() => navigate('/login?mode=register')}
-                  className="btn-accent flex items-center gap-2 px-5 py-2.5 rounded-xl text-sm font-semibold shadow-lg shadow-[var(--accent-glow)] cursor-pointer"
+                  className="btn-accent flex items-center gap-1.5 px-3.5 sm:px-5 py-2.5 rounded-xl text-sm font-semibold shadow-lg shadow-[var(--accent-glow)] cursor-pointer whitespace-nowrap"
                 >
-                  Sign Up
-                  <ArrowRight className="w-4 h-4" />
+                  Get Started
+                  <ArrowRight className="hidden sm:inline w-4 h-4" />
                 </button>
               </>
             )}
