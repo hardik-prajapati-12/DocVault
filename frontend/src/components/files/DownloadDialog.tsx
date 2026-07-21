@@ -182,7 +182,9 @@ export const DownloadDialog: React.FC = () => {
 
     a.download = `compressed_${baseName}.${ext}`;
     a.click();
-    URL.revokeObjectURL(url);
+    setTimeout(() => {
+      URL.revokeObjectURL(url);
+    }, 1000);
     onClose();
   };
 
@@ -204,7 +206,9 @@ export const DownloadDialog: React.FC = () => {
       a.href = url;
       a.download = file.name;
       a.click();
-      URL.revokeObjectURL(url);
+      setTimeout(() => {
+        URL.revokeObjectURL(url);
+      }, 1000);
       onClose();
     } catch (err: any) {
       console.error('Download original failed:', err);
