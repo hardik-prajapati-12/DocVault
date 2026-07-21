@@ -217,8 +217,8 @@ export const HomePage: React.FC = () => {
         <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 h-20 flex items-center justify-between">
           {/* Logo & Brand */}
           <Link to="/" className="flex items-center gap-3 group">
-            <div className="w-9 h-9 rounded-xl bg-gradient-to-tr from-[var(--accent)] to-indigo-500 flex items-center justify-center text-white shadow-lg shadow-[var(--accent-glow)] group-hover:scale-105 transition-transform duration-300">
-              <FileText className="w-5.5 h-5.5" />
+            <div className="w-9 h-9 rounded-xl overflow-hidden flex items-center justify-center shadow-lg shadow-[var(--accent-glow)] group-hover:scale-105 transition-transform duration-300">
+              <img src="/pwa-192x192.png" className="w-full h-full object-cover" alt="DocVault Logo" />
             </div>
             <div>
               <span className="text-xl font-extrabold tracking-tight bg-gradient-to-r from-[var(--text-primary)] via-[var(--text-primary)] to-[var(--text-secondary)] bg-clip-text text-transparent">
@@ -385,7 +385,7 @@ export const HomePage: React.FC = () => {
               className="inline-flex items-center gap-2 px-4 py-2 rounded-full glass-card border border-[var(--accent)]/30 text-xs font-semibold text-[var(--accent)] shadow-sm"
             >
               <Globe className="w-3.5 h-3.5" />
-              <span>DocVault Cloud v2.4</span>
+              <span>DocVault Cloud v1.0.0</span>
               <span className="w-1.5 h-1.5 rounded-full bg-emerald-400 animate-pulse" />
               <span className="text-[var(--text-secondary)] font-normal">Online Document Vault</span>
             </motion.div>
@@ -944,8 +944,8 @@ export const HomePage: React.FC = () => {
             {/* Brand column */}
             <div className="md:col-span-5 space-y-4">
               <div className="flex items-center gap-3">
-                <div className="w-9 h-9 rounded-xl bg-gradient-to-tr from-[var(--accent)] to-indigo-500 flex items-center justify-center text-white font-bold">
-                  <FileText className="w-5 h-5" />
+                <div className="w-9 h-9 rounded-xl overflow-hidden flex items-center justify-center shadow-md">
+                  <img src="/pwa-192x192.png" className="w-full h-full object-cover" alt="DocVault Logo" />
                 </div>
                 <span className="text-xl font-black text-[var(--text-primary)]">DocVault</span>
               </div>

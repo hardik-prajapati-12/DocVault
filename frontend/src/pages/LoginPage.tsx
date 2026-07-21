@@ -1,6 +1,6 @@
 import React, { useState } from 'react';
 import { useNavigate } from 'react-router-dom';
-import { Lock, User, Eye, EyeOff, FileText, ArrowRight, Loader2, Home } from 'lucide-react';
+import { Lock, User, Eye, EyeOff, ArrowRight, Loader2, Home } from 'lucide-react';
 
 type AuthMode = 'login' | 'register';
 
@@ -85,8 +85,8 @@ const LoginPage: React.FC = () => {
       <div className="login-container">
         {/* Branding */}
         <div className="login-brand">
-          <div className="login-logo">
-            <FileText size={32} />
+          <div className="login-logo overflow-hidden">
+            <img src="/pwa-192x192.png" className="w-full h-full object-cover" alt="DocVault Logo" />
           </div>
           <h1 className="login-title">DocVault</h1>
           <p className="login-subtitle">
