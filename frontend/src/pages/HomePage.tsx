@@ -1,4 +1,4 @@
-import React, { useState, useMemo } from 'react';
+import React, { useState, useMemo, useCallback } from 'react';
 import { Link, useNavigate } from 'react-router-dom';
 import { motion, AnimatePresence } from 'framer-motion';
 import {
@@ -6,7 +6,8 @@ import {
   Sparkles, Star, HardDrive, Layers, Globe, Database, Cpu, Check, ChevronDown,
   Download, Eye, Share2, HelpCircle, Activity, TrendingUp, Users, Award,
   Sliders, RefreshCw, LayoutDashboard, Sun, Moon, ShieldAlert, Key, FileCheck,
-  CheckCircle, ArrowUpRight, Copy, Terminal, Shield, Scale, Mail, ExternalLink
+  CheckCircle, ArrowUpRight, Copy, Terminal, Shield, Scale, Mail, ExternalLink,
+  LogOut, UserCircle
 } from 'lucide-react';
 import { useAppStore } from '@/store/app-store';
 import toast from 'react-hot-toast';
@@ -136,6 +137,35 @@ export const HomePage: React.FC = () => {
     return Boolean(localStorage.getItem('docvault-auth-token'));
   }, []);
 
+  // Get user data from localStorage
+  const userData = useMemo(() => {
+    try {
+      const raw = localStorage.getItem('docvault-auth-user');
+      if (raw) return JSON.parse(raw) as { id: string; username: string; profilePhoto?: string };
+    } catch { /* ignore */ }
+    return null;
+  }, []);
+
+  // Get user initials for avatar fallback
+  const userInitials = useMemo(() => {
+    if (!userData?.username) return '?';
+    return userData.username.slice(0, 2).toUpperCase();
+  }, [userData]);
+
+  // Profile dropdown state
+  const [profileDropdownOpen, setProfileDropdownOpen] = useState(false);
+
+  // Handle logout
+  const handleLogout = useCallback(() => {
+    localStorage.removeItem('docvault-auth-token');
+    localStorage.removeItem('docvault-auth-user');
+    setProfileDropdownOpen(false);
+    toast.success('Logged out successfully');
+    navigate('/landing', { replace: true });
+    // Force re-render by reloading
+    setTimeout(() => window.location.reload(), 100);
+  }, [navigate]);
+
   // Sandbox State
   const [sandboxSearch, setSandboxSearch] = useState('');
   const [sandboxCategory, setSandboxCategory] = useState<'all' | 'pdf' | 'contract' | 'financial' | 'code'>('all');
@@ -223,13 +253,109 @@ export const HomePage: React.FC = () => {
             </button>
 
             {isAuthenticated ? (
-              <button
-                onClick={() => navigate('/')}
-                className="btn-accent flex items-center gap-2 px-5 py-2.5 rounded-xl text-sm font-semibold shadow-lg shadow-[var(--accent-glow)] cursor-pointer"
-              >
-                <LayoutDashboard className="w-4 h-4" />
-                Open Workspace
-              </button>
+              <div className="flex items-center gap-3">
+                <button
+                  onClick={() => navigate('/')}
+                  className="hidden sm:flex btn-accent items-center gap-2 px-5 py-2.5 rounded-xl text-sm font-semibold shadow-lg shadow-[var(--accent-glow)] cursor-pointer"
+                >
+                  <LayoutDashboard className="w-4 h-4" />
+                  Open Workspace
+                </button>
+
+                {/* User Profile Section */}
+                <div className="relative">
+                  <button
+                    onClick={() => setProfileDropdownOpen(!profileDropdownOpen)}
+                    className="flex items-center gap-2.5 px-2 py-1.5 rounded-xl hover:bg-[var(--bg-tertiary)] transition-all cursor-pointer group"
+                  >
+                    {/* Avatar */}
+                    {userData?.profilePhoto ? (
+                      <img
+                        src={userData.profilePhoto}
+                        alt={userData.username}
+                        className="w-9 h-9 rounded-full object-cover border-2 border-[var(--accent)]/50 group-hover:border-[var(--accent)] transition-colors"
+                      />
+                    ) : (
+                      <div className="w-9 h-9 rounded-full bg-gradient-to-br from-[var(--accent)] to-purple-600 flex items-center justify-center text-white text-sm font-bold border-2 border-[var(--accent)]/30 group-hover:border-[var(--accent)]/60 transition-colors shadow-md">
+                        {userInitials}
+                      </div>
+                    )}
+                    <div className="hidden sm:block text-left">
+                      <span className="block text-sm font-semibold text-[var(--text-primary)] leading-tight">
+                        {userData?.username || 'User'}
+                      </span>
+                      <span className="block text-[10px] text-[var(--text-tertiary)] leading-tight">
+                        Online
+                      </span>
+                    </div>
+                    <ChevronDown className={`w-3.5 h-3.5 text-[var(--text-tertiary)] transition-transform duration-200 ${profileDropdownOpen ? 'rotate-180' : ''}`} />
+                  </button>
+
+                  {/* Profile Dropdown */}
+                  <AnimatePresence>
+                    {profileDropdownOpen && (
+                      <>
+                        {/* Backdrop to close dropdown */}
+                        <div
+                          className="fixed inset-0 z-40"
+                          onClick={() => setProfileDropdownOpen(false)}
+                        />
+                        <motion.div
+                          initial={{ opacity: 0, y: -8, scale: 0.95 }}
+                          animate={{ opacity: 1, y: 0, scale: 1 }}
+                          exit={{ opacity: 0, y: -8, scale: 0.95 }}
+                          transition={{ duration: 0.15 }}
+                          className="absolute right-0 top-full mt-2 w-56 z-50 glass-strong border border-[var(--border-color)] rounded-2xl shadow-2xl overflow-hidden"
+                        >
+                          {/* User Info Header */}
+                          <div className="p-4 border-b border-[var(--border-color)]">
+                            <div className="flex items-center gap-3">
+                              {userData?.profilePhoto ? (
+                                <img
+                                  src={userData.profilePhoto}
+                                  alt={userData.username}
+                                  className="w-10 h-10 rounded-full object-cover border-2 border-[var(--accent)]/50"
+                                />
+                              ) : (
+                                <div className="w-10 h-10 rounded-full bg-gradient-to-br from-[var(--accent)] to-purple-600 flex items-center justify-center text-white text-sm font-bold shadow-md">
+                                  {userInitials}
+                                </div>
+                              )}
+                              <div className="min-w-0">
+                                <p className="text-sm font-bold text-[var(--text-primary)] truncate">
+                                  {userData?.username || 'User'}
+                                </p>
+                                <p className="text-[11px] text-[var(--text-tertiary)] flex items-center gap-1">
+                                  <span className="w-1.5 h-1.5 rounded-full bg-emerald-400" />
+                                  Active Now
+                                </p>
+                              </div>
+                            </div>
+                          </div>
+
+                          {/* Menu Items */}
+                          <div className="p-1.5">
+                            <button
+                              onClick={() => { setProfileDropdownOpen(false); navigate('/'); }}
+                              className="w-full flex items-center gap-2.5 px-3 py-2.5 rounded-xl text-sm text-[var(--text-secondary)] hover:text-[var(--text-primary)] hover:bg-[var(--bg-tertiary)] transition-colors cursor-pointer"
+                            >
+                              <LayoutDashboard className="w-4 h-4" />
+                              Open Workspace
+                            </button>
+                            <button
+                              onClick={handleLogout}
+                              className="w-full flex items-center gap-2.5 px-3 py-2.5 rounded-xl text-sm text-red-400 hover:text-red-300 hover:bg-red-500/10 transition-colors cursor-pointer"
+                            >
+                              <LogOut className="w-4 h-4" />
+                              Sign Out
+                            </button>
+                          </div>
+                        </motion.div>
+                      </>
+                    )}
+                  </AnimatePresence>
+                </div>
+              </div>
             ) : (
               <>
                 <button
@@ -242,7 +368,7 @@ export const HomePage: React.FC = () => {
                   onClick={() => navigate('/login')}
                   className="btn-accent flex items-center gap-2 px-5 py-2.5 rounded-xl text-sm font-semibold shadow-lg shadow-[var(--accent-glow)] cursor-pointer"
                 >
-                  Get Started Free
+                  Sign Up
                   <ArrowRight className="w-4 h-4" />
                 </button>
               </>

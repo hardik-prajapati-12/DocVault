@@ -1,6 +1,6 @@
 import React, { useState } from 'react';
 import { useNavigate } from 'react-router-dom';
-import { Lock, User, Eye, EyeOff, FileText, ArrowRight, Loader2 } from 'lucide-react';
+import { Lock, User, Eye, EyeOff, FileText, ArrowRight, Loader2, Home } from 'lucide-react';
 
 type AuthMode = 'login' | 'register';
 
@@ -71,6 +71,16 @@ const LoginPage: React.FC = () => {
         <div className="login-bg-orb login-bg-orb-2" />
         <div className="login-bg-orb login-bg-orb-3" />
       </div>
+
+      {/* Home Button - Navigate back to homepage */}
+      <button
+        onClick={() => navigate('/landing')}
+        className="login-home-btn"
+        title="Go to Home"
+      >
+        <Home size={18} />
+        <span>Home</span>
+      </button>
 
       <div className="login-container">
         {/* Branding */}
