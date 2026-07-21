@@ -13,6 +13,9 @@ const ArchivePage = lazyWithRetry(() => import('@/pages/ArchivePage'));
 const TrashPage = lazyWithRetry(() => import('@/pages/TrashPage'));
 const FoldersPage = lazyWithRetry(() => import('@/pages/FoldersPage'));
 const LoginPage = lazyWithRetry(() => import('@/pages/LoginPage'));
+const PrivacyPolicyPage = lazyWithRetry(() => import('@/pages/PrivacyPolicyPage'));
+const TermsPage = lazyWithRetry(() => import('@/pages/TermsPage'));
+const SecurityWhitepaperPage = lazyWithRetry(() => import('@/pages/SecurityWhitepaperPage'));
 
 const PageLoader = () => (
   <div className="flex items-center justify-center h-64">
@@ -59,6 +62,33 @@ const router = createBrowserRouter([
     element: (
       <Suspense fallback={<PageLoader />}>
         <LoginPage />
+      </Suspense>
+    ),
+    errorElement: <RouteErrorBoundary />,
+  },
+  {
+    path: '/privacy',
+    element: (
+      <Suspense fallback={<PageLoader />}>
+        <PrivacyPolicyPage />
+      </Suspense>
+    ),
+    errorElement: <RouteErrorBoundary />,
+  },
+  {
+    path: '/terms',
+    element: (
+      <Suspense fallback={<PageLoader />}>
+        <TermsPage />
+      </Suspense>
+    ),
+    errorElement: <RouteErrorBoundary />,
+  },
+  {
+    path: '/security-whitepaper',
+    element: (
+      <Suspense fallback={<PageLoader />}>
+        <SecurityWhitepaperPage />
       </Suspense>
     ),
     errorElement: <RouteErrorBoundary />,

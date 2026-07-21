@@ -123,7 +123,7 @@ const FAQS = [
   },
   {
     q: 'Is there a limit on file size or storage capacity?',
-    a: 'DocVault supports generous upload sizes and cloud storage tiers that scale based on your plan. Contact us for enterprise-grade unlimited storage requirements.'
+    a: 'Each user is allocated exactly 10 GB of secure online cloud storage. There are no plans or options to exceed this 10 GB limit.'
   },
 ];
 
@@ -860,39 +860,7 @@ export const HomePage: React.FC = () => {
         </div>
       </section>
 
-      {/* ── 7. Testimonials & Social Proof ── */}
-      <section className="py-20 bg-[var(--bg-secondary)] border-y border-[var(--border-color)]">
-        <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
-          
-          <div className="text-center max-w-2xl mx-auto mb-14">
-            <span className="text-xs font-bold uppercase tracking-widest text-[var(--accent)]">Trusted Worldwide</span>
-            <h2 className="text-3xl sm:text-4xl font-extrabold mt-2">Loved by Teams & Organizations Worldwide</h2>
-          </div>
 
-          <div className="grid grid-cols-1 md:grid-cols-3 gap-8">
-            {TESTIMONIALS.map((t) => (
-              <div key={t.name} className="glass-strong p-8 rounded-3xl border border-[var(--border-color)] flex flex-col justify-between space-y-6 shadow-lg">
-                <div className="space-y-4">
-                  <div className="flex items-center gap-1 text-amber-400">
-                    {[...Array(t.rating)].map((_, i) => (
-                      <Star key={i} className="w-4 h-4 fill-current" />
-                    ))}
-                  </div>
-                  <p className="text-sm text-[var(--text-secondary)] italic leading-relaxed">"{t.comment}"</p>
-                </div>
-
-                <div className="flex items-center gap-3 pt-4 border-t border-[var(--border-color)]">
-                  <img src={t.avatar} alt={t.name} className="w-11 h-11 rounded-full object-cover border border-[var(--accent)]" />
-                  <div>
-                    <h5 className="text-sm font-bold text-[var(--text-primary)]">{t.name}</h5>
-                    <p className="text-xs text-[var(--text-tertiary)]">{t.role} • {t.company}</p>
-                  </div>
-                </div>
-              </div>
-            ))}
-          </div>
-        </div>
-      </section>
 
       {/* ── 8. Interactive FAQ Accordion ── */}
       <section id="faq" className="py-24 max-w-4xl mx-auto px-4 sm:px-6 lg:px-8">
@@ -956,7 +924,7 @@ export const HomePage: React.FC = () => {
 
               <div className="flex items-center gap-2 pt-2">
                 <span className="w-2.5 h-2.5 rounded-full bg-emerald-400 animate-pulse" />
-                <span className="text-xs font-semibold text-[var(--text-secondary)]">Cloud Services Online 🟢</span>
+                <span className="text-xs font-semibold text-[var(--text-secondary)]">Cloud Services Online</span>
               </div>
             </div>
 
@@ -971,32 +939,38 @@ export const HomePage: React.FC = () => {
               </ul>
             </div>
 
-            {/* Newsletter Column */}
+            {/* Legal & Security Column */}
             <div className="md:col-span-4 space-y-3">
-              <h5 className="text-xs font-bold uppercase tracking-wider text-[var(--text-primary)]">Platform Updates</h5>
-              <p className="text-xs text-[var(--text-secondary)]">Subscribe to monthly product updates and cloud platform release notes.</p>
-              
-              <form onSubmit={handleSubscribe} className="flex gap-2 pt-1">
-                <input
-                  type="email"
-                  placeholder="Enter your email..."
-                  value={emailInput}
-                  onChange={(e) => setEmailInput(e.target.value)}
-                  className="flex-1 bg-[var(--bg-input)] border border-[var(--border-color)] rounded-xl px-3.5 py-2 text-xs text-[var(--text-primary)] focus:outline-none focus:border-[var(--accent)]"
-                />
-                <button type="submit" className="btn-accent px-4 py-2 rounded-xl text-xs font-semibold cursor-pointer">
-                  Subscribe
-                </button>
-              </form>
+              <h5 className="text-xs font-bold uppercase tracking-wider text-[var(--text-primary)]">Legal & Security</h5>
+              <p className="text-xs text-[var(--text-secondary)] leading-relaxed">
+                DocVault is committed to secure, transparent document cloud management. Explore our compliance frameworks and legal agreements.
+              </p>
+              <ul className="space-y-2 text-xs text-[var(--accent)] font-medium pt-1">
+                <li>
+                  <Link to="/privacy" className="hover:underline flex items-center gap-1.5">
+                    Privacy Policy
+                  </Link>
+                </li>
+                <li>
+                  <Link to="/terms" className="hover:underline flex items-center gap-1.5">
+                    Terms of Service
+                  </Link>
+                </li>
+                <li>
+                  <Link to="/security-whitepaper" className="hover:underline flex items-center gap-1.5">
+                    Security Whitepaper
+                  </Link>
+                </li>
+              </ul>
             </div>
           </div>
 
           <div className="pt-8 flex flex-col sm:flex-row items-center justify-between gap-4 text-xs text-[var(--text-tertiary)]">
             <p>© {new Date().getFullYear()} DocVault Inc. All rights reserved.</p>
             <div className="flex items-center gap-6">
-              <span className="hover:text-[var(--text-secondary)] cursor-pointer">Privacy Policy</span>
-              <span className="hover:text-[var(--text-secondary)] cursor-pointer">Terms of Service</span>
-              <span className="hover:text-[var(--text-secondary)] cursor-pointer">Security Whitepaper</span>
+              <Link to="/privacy" className="hover:text-[var(--text-secondary)] transition-colors">Privacy Policy</Link>
+              <Link to="/terms" className="hover:text-[var(--text-secondary)] transition-colors">Terms of Service</Link>
+              <Link to="/security-whitepaper" className="hover:text-[var(--text-secondary)] transition-colors">Security Whitepaper</Link>
             </div>
           </div>
         </div>
