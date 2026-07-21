@@ -172,7 +172,7 @@ export const HomePage: React.FC = () => {
   const [selectedDemoDoc, setSelectedDemoDoc] = useState<DemoDoc | null>(DEMO_FILES[0]);
 
   // Calculator State
-  const [docCount, setDocCount] = useState<number>(500);
+  const [docCount, setDocCount] = useState<number>(250);
   const [avgSizeMb, setAvgSizeMb] = useState<number>(4);
 
   // Accordion State
@@ -782,9 +782,9 @@ export const HomePage: React.FC = () => {
                 </div>
                 <input
                   type="range"
-                  min="50"
-                  max="10000"
-                  step="50"
+                  min="10"
+                  max="1000"
+                  step="10"
                   value={docCount}
                   onChange={(e) => setDocCount(Number(e.target.value))}
                   className="w-full h-2 bg-[var(--bg-tertiary)] rounded-lg appearance-none cursor-pointer accent-[var(--accent)]"
@@ -800,7 +800,7 @@ export const HomePage: React.FC = () => {
                 <input
                   type="range"
                   min="1"
-                  max="50"
+                  max="10"
                   step="1"
                   value={avgSizeMb}
                   onChange={(e) => setAvgSizeMb(Number(e.target.value))}
