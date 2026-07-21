@@ -193,7 +193,19 @@ export const Header: React.FC = () => {
             className="flex items-center gap-2 p-2 rounded-xl bg-[var(--bg-input)] border border-[var(--border-color)] text-[var(--text-secondary)] hover:text-[var(--text-primary)] transition-colors cursor-pointer"
             title="Account"
           >
-            <UserCircle className="w-5 h-5" />
+            {authUser?.profilePhoto ? (
+              <img
+                src={authUser.profilePhoto}
+                alt={authUser.username}
+                className="w-5.5 h-5.5 rounded-full object-cover border border-[var(--accent)]/50"
+              />
+            ) : authUser?.username ? (
+              <div className="w-5.5 h-5.5 rounded-full bg-gradient-to-br from-[var(--accent)] to-purple-600 flex items-center justify-center text-white text-[10px] font-bold border border-[var(--accent)]/30 shadow-sm">
+                {authUser.username.slice(0, 1).toUpperCase()}
+              </div>
+            ) : (
+              <UserCircle className="w-5 h-5" />
+            )}
             {authUser?.username && (
               <span className="text-sm font-medium max-w-[120px] truncate">{authUser.username}</span>
             )}
