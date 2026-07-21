@@ -157,7 +157,7 @@ export const Header: React.FC = () => {
         </div>
 
         {/* View Toggle */}
-        <div className="flex rounded-xl overflow-hidden border border-[var(--border-color)]">
+        <div className="hidden sm:flex rounded-xl overflow-hidden border border-[var(--border-color)]">
           <button
             onClick={() => setViewMode('grid')}
             className={`p-2.5 transition-colors cursor-pointer ${

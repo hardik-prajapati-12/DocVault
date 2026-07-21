@@ -20,6 +20,7 @@ const navItems = [
 export const Sidebar: React.FC = () => {
   const sidebarOpen = useAppStore((s) => s.sidebarOpen);
   const toggleSidebar = useAppStore((s) => s.toggleSidebar);
+  const setSidebarOpen = useAppStore((s) => s.setSidebarOpen);
   const setSettingsOpen = useAppStore((s) => s.setSettingsOpen);
   const location = useLocation();
 
@@ -27,6 +28,22 @@ export const Sidebar: React.FC = () => {
   const totalDocs = docs.filter((d) => d.isDeleted === 0).length;
 
   const [quota, setQuota] = React.useState(10 * 1024 * 1024 * 1024); // 10 GB default
+  const [isMobile, setIsMobile] = React.useState(window.innerWidth < 768);
+
+  React.useEffect(() => {
+    const handleResize = () => {
+      setIsMobile(window.innerWidth < 768);
+    };
+    window.addEventListener('resize', handleResize);
+    return () => window.removeEventListener('resize', handleResize);
+  }, []);
+
+  // Automatically collapse sidebar on mobile layout on mount
+  React.useEffect(() => {
+    if (window.innerWidth < 768) {
+      setSidebarOpen(false);
+    }
+  }, [setSidebarOpen]);
 
   React.useEffect(() => {
     navigator.storage.estimate().then((est) => {
@@ -38,12 +55,21 @@ export const Sidebar: React.FC = () => {
   const storagePercent = quota > 0 ? (usedStorage / quota) * 100 : 0;
 
   return (
-    <motion.aside
-      initial={false}
-      animate={{ width: sidebarOpen ? 260 : 72 }}
-      transition={{ duration: 0.25, ease: [0.4, 0, 0.2, 1] }}
-      className="h-[100dvh] sticky top-0 flex flex-col glass-strong z-30 overflow-hidden flex-shrink-0"
-    >
+    <>
+      {isMobile && sidebarOpen && (
+        <div
+          onClick={() => toggleSidebar()}
+          className="fixed inset-0 bg-[#000]/60 z-40 backdrop-blur-sm transition-opacity duration-300 cursor-pointer"
+        />
+      )}
+      <motion.aside
+        initial={false}
+        animate={{ width: sidebarOpen ? 260 : 72 }}
+        transition={{ duration: 0.25, ease: [0.4, 0, 0.2, 1] }}
+        className={`h-[100dvh] sticky top-0 flex flex-col glass-strong z-50 overflow-hidden flex-shrink-0 border-r border-[var(--border-color)]
+          ${isMobile && sidebarOpen ? 'fixed left-0 shadow-2xl' : 'relative'}
+        `}
+      >
       {/* Logo */}
       <div className="flex items-center gap-3 p-4 border-b border-[var(--border-color)]">
         <div className="w-9 h-9 flex items-center justify-center flex-shrink-0">
@@ -179,5 +205,6 @@ export const Sidebar: React.FC = () => {
         </div>
       </div>
     </motion.aside>
+    </>
   );
 };
