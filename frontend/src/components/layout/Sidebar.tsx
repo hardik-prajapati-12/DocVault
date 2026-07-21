@@ -10,7 +10,6 @@ import { formatBytes } from '@/utils';
 
 const navItems = [
   { path: '/', label: 'Dashboard', icon: LayoutDashboard },
-  { path: '/landing', label: 'Home Showcase', icon: Sparkles },
   { path: '/folders', label: 'Folders', icon: Folder },
   { path: '/files', label: 'All Files', icon: Files },
   { path: '/favorites', label: 'Favorites', icon: Star },
@@ -43,7 +42,7 @@ export const Sidebar: React.FC = () => {
       initial={false}
       animate={{ width: sidebarOpen ? 260 : 72 }}
       transition={{ duration: 0.25, ease: [0.4, 0, 0.2, 1] }}
-      className="h-screen sticky top-0 flex flex-col glass-strong z-30 overflow-hidden flex-shrink-0"
+      className="h-[100dvh] sticky top-0 flex flex-col glass-strong z-30 overflow-hidden flex-shrink-0"
     >
       {/* Logo */}
       <div className="flex items-center gap-3 p-4 border-b border-[var(--border-color)]">
@@ -96,6 +95,33 @@ export const Sidebar: React.FC = () => {
           );
         })}
       </nav>
+
+      {/* Home Showcase - Relocated above Cloud Storage */}
+      <div className="px-2 mb-2.5">
+        <NavLink
+          to="/landing"
+          className={`flex items-center gap-3 px-3 py-2.5 rounded-xl text-sm font-medium transition-all duration-200 group
+            ${location.pathname === '/landing'
+              ? 'bg-[var(--accent-dim)] text-[var(--accent)]'
+              : 'text-[var(--text-secondary)] hover:text-[var(--text-primary)] hover:bg-[var(--bg-tertiary)]'
+            }`}
+          title="Home Showcase"
+        >
+          <Sparkles className={`w-5 h-5 flex-shrink-0 ${location.pathname === '/landing' ? 'text-[var(--accent)]' : ''}`} />
+          <AnimatePresence>
+            {sidebarOpen && (
+              <motion.span
+                initial={{ opacity: 0 }}
+                animate={{ opacity: 1 }}
+                exit={{ opacity: 0 }}
+                className="whitespace-nowrap overflow-hidden"
+              >
+                Home Showcase
+              </motion.span>
+            )}
+          </AnimatePresence>
+        </NavLink>
+      </div>
 
       {/* Storage Indicator */}
       <AnimatePresence>
