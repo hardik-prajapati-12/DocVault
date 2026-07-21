@@ -186,13 +186,30 @@ export const DownloadDialog: React.FC = () => {
     onClose();
   };
 
-  const handleDownloadOriginal = () => {
+  const handleDownloadOriginal = async () => {
     if (!file) return;
-    const a = document.createElement('a');
-    a.href = `/api/documents/${file.id}/file?download=true`;
-    a.download = file.name;
-    a.click();
-    onClose();
+    try {
+      const token = localStorage.getItem('docvault-auth-token');
+      const res = await fetch(`/api/documents/${file.id}/file?download=true`, {
+        headers: {
+          'Authorization': `Bearer ${token}`
+        }
+      });
+      if (!res.ok) {
+        throw new Error('Failed to download file from server');
+      }
+      const blob = await res.blob();
+      const url = URL.createObjectURL(blob);
+      const a = document.createElement('a');
+      a.href = url;
+      a.download = file.name;
+      a.click();
+      URL.revokeObjectURL(url);
+      onClose();
+    } catch (err: any) {
+      console.error('Download original failed:', err);
+      toast.error(err.message || 'Failed to download original file');
+    }
   };
 
   return (
