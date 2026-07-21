@@ -61,9 +61,9 @@ const DashboardPage: React.FC = () => {
     toast.promise(
       new Promise((resolve) => setTimeout(resolve, 1200)),
       {
-        loading: 'Scanning client vault encryption & HMAC hashes...',
-        success: `Vault Health: 100% Secure (${activeDocs.length} files verified with zero defects)`,
-        error: 'Scan failed',
+        loading: 'Verifying cloud connection & document integrity...',
+        success: `Cloud Vault Status: Online & Secure (${activeDocs.length} documents synced)`,
+        error: 'Check failed',
       }
     );
   };
@@ -85,10 +85,10 @@ const DashboardPage: React.FC = () => {
             <div className="flex items-center gap-2">
               <span className="inline-flex items-center gap-1.5 px-3 py-1 rounded-full bg-[var(--accent-dim)] text-[var(--accent)] text-xs font-semibold">
                 <Sparkles className="w-3.5 h-3.5" />
-                DocVault Executive Hub
+                DocVault Cloud Dashboard
               </span>
               <span className="inline-flex items-center gap-1 px-2.5 py-1 rounded-full bg-emerald-500/10 text-emerald-400 text-xs font-semibold">
-                <ShieldCheck className="w-3.5 h-3.5" /> Encrypted
+                <ShieldCheck className="w-3.5 h-3.5" /> Online
               </span>
             </div>
 
@@ -99,7 +99,7 @@ const DashboardPage: React.FC = () => {
               </span>
             </h1>
             <p className="text-sm text-[var(--text-secondary)]">
-              Your zero-knowledge document vault is synced, encrypted, and operational.
+              Your online document vault is connected, synced, and ready to go.
             </p>
           </div>
 
@@ -117,7 +117,7 @@ const DashboardPage: React.FC = () => {
               className="glass-card px-4 py-3 rounded-2xl border border-[var(--border-color)] text-sm font-semibold text-[var(--text-primary)] hover:bg-[var(--bg-tertiary)] transition-colors flex items-center gap-2 cursor-pointer"
             >
               <Activity className="w-4 h-4 text-emerald-400" />
-              Security Check
+              Cloud Status
             </button>
           </div>
         </div>
@@ -126,10 +126,10 @@ const DashboardPage: React.FC = () => {
       {/* ── 2. Quick Action Shortcut Grid ── */}
       <div className="grid grid-cols-2 sm:grid-cols-4 gap-4">
         {[
-          { label: 'All Vault Files', count: `${activeDocs.length} Documents`, icon: Files, path: '/files', color: '#3b82f6' },
+          { label: 'All Cloud Files', count: `${activeDocs.length} Documents`, icon: Files, path: '/files', color: '#3b82f6' },
           { label: 'Favorite Items', count: `${favoriteCount} Starred`, icon: Star, path: '/favorites', color: '#f59e0b' },
           { label: 'Folders Hierarchy', count: 'Organized Paths', icon: FolderPlus, path: '/folders', color: '#8b5cf6' },
-          { label: 'Product Showcase', count: 'Explore Features', icon: ArrowUpRight, path: '/landing', color: '#10b981' },
+          { label: 'Product Showcase', count: 'Explore Platform', icon: ArrowUpRight, path: '/landing', color: '#10b981' },
         ].map((act, idx) => {
           const Icon = act.icon;
           return (
@@ -161,8 +161,8 @@ const DashboardPage: React.FC = () => {
       <div className="space-y-4">
         <div className="flex items-center justify-between">
           <div>
-            <h2 className="text-lg font-bold text-[var(--text-primary)]">Recent Vault Activity</h2>
-            <p className="text-xs text-[var(--text-secondary)]">Quick access to your latest uploaded or updated files</p>
+            <h2 className="text-lg font-bold text-[var(--text-primary)]">Recent Cloud Activity</h2>
+            <p className="text-xs text-[var(--text-secondary)]">Quick access to your latest uploaded or updated documents online</p>
           </div>
           <Link
             to="/files"
@@ -179,9 +179,9 @@ const DashboardPage: React.FC = () => {
               <FileText className="w-7 h-7" />
             </div>
             <div className="max-w-md mx-auto">
-              <h3 className="text-base font-bold text-[var(--text-primary)]">Your Vault is Empty</h3>
+              <h3 className="text-base font-bold text-[var(--text-primary)]">Your Cloud Vault is Empty</h3>
               <p className="text-xs text-[var(--text-secondary)] mt-1">
-                Upload your first document to experience zero-knowledge encryption, instant full-text search, and offline preview capabilities.
+                Upload your first document to get started with secure online storage, instant cloud search, and built-in document previewing.
               </p>
             </div>
             <button
@@ -223,7 +223,7 @@ const DashboardPage: React.FC = () => {
 
                 <div className="flex items-center justify-between pt-2 border-t border-[var(--border-color)] text-xs text-[var(--text-tertiary)]">
                   <span className="flex items-center gap-1 font-mono text-[10px] text-emerald-400">
-                    <Lock className="w-3 h-3" /> Encrypted
+                    <Lock className="w-3 h-3" /> Cloud Stored
                   </span>
                   <button
                     onClick={() => setPreviewFileId(doc.id)}

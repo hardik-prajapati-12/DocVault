@@ -107,7 +107,7 @@ export const Sidebar: React.FC = () => {
             className="px-4 pb-2"
           >
             <div className="text-xs text-[var(--text-tertiary)] mb-1.5 flex justify-between">
-              <span>Storage</span>
+              <span>Cloud Storage</span>
               <span>{storagePercent.toFixed(1)}%</span>
             </div>
             <div className="h-1.5 bg-[var(--bg-tertiary)] rounded-full overflow-hidden mb-1">

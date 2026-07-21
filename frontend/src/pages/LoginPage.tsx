@@ -81,8 +81,8 @@ const LoginPage: React.FC = () => {
           <h1 className="login-title">DocVault</h1>
           <p className="login-subtitle">
             {mode === 'login'
-              ? 'Welcome back! Sign in to your vault.'
-              : 'Create your account to get started.'}
+              ? 'Welcome back! Sign in to access your online document vault.'
+              : 'Create your account to start managing documents online.'}
           </p>
         </div>
 

@@ -2,7 +2,7 @@ import React from 'react';
 import {
   Search, Grid3X3, List, SortAsc, Upload,
   ArrowDownAZ, ArrowUpAZ, Clock, ArrowDown, ArrowUp, FileText,
-  LogOut, UserCircle, Sparkles
+  LogOut, UserCircle, Sparkles, Globe
 } from 'lucide-react';
 import { motion } from 'framer-motion';
 import { useAppStore } from '@/store/app-store';
@@ -77,6 +77,13 @@ export const Header: React.FC = () => {
             onChange={(e) => setSearchQuery(e.target.value)}
             className="input-glass w-full !pl-10 pr-4 py-2.5 text-sm"
           />
+        </div>
+
+        {/* Cloud Status Indicator */}
+        <div className="hidden lg:flex items-center gap-1.5 px-3 py-1.5 rounded-full bg-emerald-500/10 text-emerald-400 text-xs font-semibold">
+          <span className="w-1.5 h-1.5 rounded-full bg-emerald-400 animate-pulse" />
+          <Globe className="w-3.5 h-3.5" />
+          <span>Cloud Online</span>
         </div>
 
         {/* Filter Dropdown */}

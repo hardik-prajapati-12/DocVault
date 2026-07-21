@@ -34,45 +34,45 @@ const DEMO_FILES: DemoDoc[] = [
 const FEATURES = [
   {
     icon: Lock,
-    title: 'Zero-Knowledge Encryption',
-    description: 'Client-side AES-256 GCM encryption ensures your sensitive files are scrambled before leaving your browser. Only you hold the key.',
+    title: 'Secure Online Storage',
+    description: 'Your documents are protected with enterprise-grade HTTPS encryption in transit and secured cloud storage at rest. Access your vault from anywhere with confidence.',
     color: '#3b82f6',
-    badge: 'AES-256 GCM'
+    badge: 'HTTPS Secured'
   },
   {
     icon: Zap,
-    title: 'Instant Full-Text Search',
-    description: 'Blazing fast client-side indexing powers instant full-text search across documents, metadata, and tags in less than 5ms.',
+    title: 'Instant Cloud Search',
+    description: 'Blazing-fast cloud-indexed search delivers instant results across all your documents, metadata, and tags from any device in milliseconds.',
     color: '#8b5cf6',
-    badge: '< 5ms Search'
+    badge: 'Instant Results'
   },
   {
     icon: FileText,
-    title: 'Built-in PDF & Media Suite',
-    description: 'Preview, merge, compress, split, and extract text from PDFs directly in the browser without sending data to third-party servers.',
+    title: 'Online PDF & Media Viewer',
+    description: 'Preview PDFs, images, videos, code files, and documents directly in your browser — streamed securely from your online vault without any downloads.',
     color: '#10b981',
-    badge: 'Offline Utilities'
+    badge: 'Stream & Preview'
   },
   {
-    icon: HardDrive,
-    title: 'PWA & IndexedDB Engine',
-    description: 'Progressive Web App support enables offline access to your cached vault documents, syncing seamlessly when online.',
+    icon: Globe,
+    title: 'Multi-Device Cloud Sync',
+    description: 'Seamlessly access and manage your document vault from desktop, tablet, or mobile. Your files stay synced across every device over the internet.',
     color: '#f59e0b',
-    badge: 'Offline First'
+    badge: 'Access Anywhere'
   },
   {
     icon: Layers,
-    title: 'Smart Categorization & Tags',
-    description: 'Automatically organize files into intelligent categories, dynamic tag hierarchies, and custom color-coded folders.',
+    title: 'Smart Folders & Tagging',
+    description: 'Organize files into hierarchical cloud folders, assign dynamic color-coded tags, and let intelligent categorization keep your vault structured.',
     color: '#14b8a6',
     badge: 'Auto-Organized'
   },
   {
     icon: Activity,
-    title: 'Complete Audit Ticker',
-    description: 'Keep track of every document upload, modification, archive action, and security check with verifiable system logs.',
+    title: 'Activity & Audit Logs',
+    description: 'Track every document upload, modification, archive, and deletion in real-time with comprehensive cloud activity logs and system analytics.',
     color: '#f43f5e',
-    badge: 'Verifiable Trail'
+    badge: 'Full Visibility'
   },
 ];
 
@@ -81,7 +81,7 @@ const TESTIMONIALS = [
     name: 'Elena Rostova',
     role: 'Head of Information Security',
     company: 'FinTech Secure Labs',
-    comment: 'DocVault transformed how our legal and security teams handle confidential contracts. The zero-knowledge encryption gives us total peace of mind.',
+    comment: 'DocVault transformed how our legal and security teams manage confidential contracts online. Having secure cloud access from any device gives us total peace of mind.',
     rating: 5,
     avatar: 'https://images.unsplash.com/photo-1534528741775-53994a69daeb?w=150&auto=format&fit=crop&q=80'
   },
@@ -89,7 +89,7 @@ const TESTIMONIALS = [
     name: 'Marcus Vance',
     role: 'VP of Engineering',
     company: 'Nexus Cloud Systems',
-    comment: 'The speed of instant full-text search and client-side PDF tools in DocVault is unbelievable. It replaced three separate bloated enterprise tools for our dev team.',
+    comment: 'The speed of instant cloud search and the online PDF viewer in DocVault is remarkable. It replaced three separate enterprise tools for our distributed team.',
     rating: 5,
     avatar: 'https://images.unsplash.com/photo-1507003211169-0a1dd7228f2d?w=150&auto=format&fit=crop&q=80'
   },
@@ -97,7 +97,7 @@ const TESTIMONIALS = [
     name: 'Sarah Chen',
     role: 'Principal Compliance Architect',
     company: 'Global Health Vault',
-    comment: 'Having SOC 2 and ISO 27001 readiness out of the box with zero client data logging saved us months of audit preparation. DocVault is top-tier.',
+    comment: 'Having SOC 2 and ISO 27001 readiness with secure online document management saved us months of audit preparation. DocVault is truly enterprise-grade.',
     rating: 5,
     avatar: 'https://images.unsplash.com/photo-1573496359142-b8d87734a5a2?w=150&auto=format&fit=crop&q=80'
   },
@@ -106,23 +106,23 @@ const TESTIMONIALS = [
 const FAQS = [
   {
     q: 'How does DocVault protect my sensitive documents?',
-    a: 'DocVault utilizes Zero-Knowledge AES-256 GCM encryption. Your data is encrypted locally on your device prior to any network transmission. Neither server operators nor third parties have access to your private decryption keys.'
+    a: 'DocVault secures all documents with enterprise-grade HTTPS/TLS encryption in transit and secure cloud storage at rest. User sessions are protected with JWT authentication, and all API endpoints require verified credentials.'
   },
   {
-    q: 'Can I access my files while offline?',
-    a: 'Yes! DocVault is engineered as a Progressive Web App (PWA). It leverages IndexedDB and Service Workers to cache your encrypted vault locally, permitting seamless file browsing and offline document inspection.'
+    q: 'Can I access my documents from any device?',
+    a: 'Yes! DocVault is a fully online cloud platform. Simply sign in from any modern web browser on desktop, tablet, or mobile, and your entire document vault is instantly available over the internet.'
   },
   {
-    q: 'What document formats are supported by the inline viewer?',
-    a: 'DocVault natively previews PDFs, images (PNG, JPG, SVG, WebP), code files (TypeScript, JS, Python, JSON, Markdown), videos, audio files, and raw text files right inside your browser.'
+    q: 'What document formats are supported by the online viewer?',
+    a: 'DocVault streams and previews PDFs, images (PNG, JPG, SVG, WebP), code files (TypeScript, JS, Python, JSON, Markdown), videos, audio files, and raw text files directly in your browser without requiring downloads.'
   },
   {
-    q: 'Can I integrate DocVault with custom cloud providers or WebDAV?',
-    a: 'Absolutely. DocVault includes built-in WebDAV synchronization support, allowing you to connect to Nextcloud, ownCloud, or custom NAS storage endpoints.'
+    q: 'How does the online search work across my documents?',
+    a: 'DocVault uses high-performance cloud indexing to deliver instant search results across file names, metadata, tags, and content. Results are returned in milliseconds regardless of your vault size.'
   },
   {
     q: 'Is there a limit on file size or storage capacity?',
-    a: 'Local offline storage is bounded only by your browser environment quota (typically up to tens of gigabytes). Server storage scales based on your storage plan tier.'
+    a: 'DocVault supports generous upload sizes and cloud storage tiers that scale based on your plan. Contact us for enterprise-grade unlimited storage requirements.'
   },
 ];
 
@@ -197,7 +197,7 @@ export const HomePage: React.FC = () => {
                 DocVault
               </span>
               <span className="block text-[10px] uppercase font-bold tracking-widest text-[var(--accent)] -mt-1">
-                Enterprise Edition
+                Online Cloud Platform
               </span>
             </div>
           </Link>
@@ -266,10 +266,10 @@ export const HomePage: React.FC = () => {
               animate={{ opacity: 1, y: 0 }}
               className="inline-flex items-center gap-2 px-4 py-2 rounded-full glass-card border border-[var(--accent)]/30 text-xs font-semibold text-[var(--accent)] shadow-sm"
             >
-              <Sparkles className="w-3.5 h-3.5" />
-              <span>DocVault v2.4 Release</span>
-              <span className="w-1.5 h-1.5 rounded-full bg-[var(--accent)] animate-pulse" />
-              <span className="text-[var(--text-secondary)] font-normal">Zero-Knowledge Architecture</span>
+              <Globe className="w-3.5 h-3.5" />
+              <span>DocVault Cloud v2.4</span>
+              <span className="w-1.5 h-1.5 rounded-full bg-emerald-400 animate-pulse" />
+              <span className="text-[var(--text-secondary)] font-normal">Online Document Vault</span>
             </motion.div>
 
             {/* Main Title */}
@@ -279,11 +279,11 @@ export const HomePage: React.FC = () => {
               transition={{ delay: 0.1 }}
               className="text-4xl sm:text-6xl font-black tracking-tight leading-[1.1]"
             >
-              Secure, Intelligent &{' '}
+              Manage Your Documents{' '}
               <span className="bg-gradient-to-r from-[var(--accent)] via-purple-500 to-indigo-500 bg-clip-text text-transparent">
-                Lightning-Fast
+                Online, Securely
               </span>{' '}
-              Document Vault.
+              From Anywhere.
             </motion.h1>
 
             {/* Subtitle */}
@@ -293,7 +293,7 @@ export const HomePage: React.FC = () => {
               transition={{ delay: 0.2 }}
               className="text-lg sm:text-xl text-[var(--text-secondary)] leading-relaxed"
             >
-              Store, organize, encrypt, and analyze your critical files with end-to-end client-side privacy, instant full-text search, and built-in PDF tools.
+              Store, organize, and preview your critical documents online with enterprise-grade security, instant cloud search, and built-in PDF & media viewers — accessible from any device over the internet.
             </motion.p>
 
             {/* Hero CTAs */}
@@ -308,7 +308,7 @@ export const HomePage: React.FC = () => {
                 className="w-full sm:w-auto btn-accent flex items-center justify-center gap-2.5 px-8 py-4 rounded-2xl font-bold text-base shadow-xl shadow-[var(--accent-glow)] hover:scale-[1.02] active:scale-[0.98] transition-all cursor-pointer"
               >
                 <Shield className="w-5 h-5" />
-                {isAuthenticated ? 'Launch Vault Workspace' : 'Create Free Vault Account'}
+                {isAuthenticated ? 'Open My Vault' : 'Get Started Free'}
               </button>
 
               <a
@@ -329,15 +329,15 @@ export const HomePage: React.FC = () => {
             >
               <div className="flex items-center gap-2">
                 <CheckCircle2 className="w-4 h-4 text-emerald-400" />
-                <span>AES-256 GCM Encryption</span>
+                <span>Secure Cloud Storage</span>
               </div>
               <div className="flex items-center gap-2">
                 <CheckCircle2 className="w-4 h-4 text-emerald-400" />
-                <span>Zero Server Logging</span>
+                <span>Multi-Device Access</span>
               </div>
               <div className="flex items-center gap-2">
                 <CheckCircle2 className="w-4 h-4 text-emerald-400" />
-                <span>PWA Offline Vault Sync</span>
+                <span>Instant Online Search</span>
               </div>
             </motion.div>
           </div>
@@ -357,12 +357,12 @@ export const HomePage: React.FC = () => {
                   <div className="w-3 h-3 rounded-full bg-red-500/80" />
                   <div className="w-3 h-3 rounded-full bg-amber-500/80" />
                   <div className="w-3 h-3 rounded-full bg-emerald-500/80" />
-                  <span className="ml-2 text-xs text-[var(--text-tertiary)] font-mono">docvault://encrypted-vault-session</span>
+                  <span className="ml-2 text-xs text-[var(--text-tertiary)] font-mono">https://docvault.app/vault</span>
                 </div>
                 <div className="flex items-center gap-3">
                   <span className="inline-flex items-center gap-1.5 px-3 py-1 rounded-full bg-emerald-500/10 text-emerald-400 text-xs font-semibold">
-                    <ShieldCheck className="w-3.5 h-3.5" />
-                    Vault Status: Encrypted & Active
+                    <Globe className="w-3.5 h-3.5" />
+                    Cloud Vault: Online & Secure
                   </span>
                 </div>
               </div>
@@ -374,7 +374,7 @@ export const HomePage: React.FC = () => {
                     <div className="w-9 h-9 rounded-xl bg-blue-500/15 flex items-center justify-center text-blue-400">
                       <FileText className="w-5 h-5" />
                     </div>
-                    <span className="text-[11px] px-2 py-0.5 rounded-full bg-blue-500/10 text-blue-400 font-medium">Encrypted</span>
+                    <span className="text-[11px] px-2 py-0.5 rounded-full bg-blue-500/10 text-blue-400 font-medium">Cloud</span>
                   </div>
                   <h4 className="text-sm font-semibold text-[var(--text-primary)] truncate">Q3_Security_Report.pdf</h4>
                   <p className="text-xs text-[var(--text-tertiary)] mt-1">4.2 MB • Updated 2h ago</p>
@@ -388,7 +388,7 @@ export const HomePage: React.FC = () => {
                     <span className="text-[11px] px-2 py-0.5 rounded-full bg-purple-500/10 text-purple-400 font-medium">18 Files</span>
                   </div>
                   <h4 className="text-sm font-semibold text-[var(--text-primary)] truncate">Legal Contracts 2026</h4>
-                  <p className="text-xs text-[var(--text-tertiary)] mt-1">128 MB • Shared Vault</p>
+                  <p className="text-xs text-[var(--text-tertiary)] mt-1">128 MB • Online Folder</p>
                 </div>
 
                 <div className="glass-card p-4 rounded-2xl border border-[var(--border-color)]">
@@ -396,10 +396,10 @@ export const HomePage: React.FC = () => {
                     <div className="w-9 h-9 rounded-xl bg-emerald-500/15 flex items-center justify-center text-emerald-400">
                       <Zap className="w-5 h-5" />
                     </div>
-                    <span className="text-[11px] px-2 py-0.5 rounded-full bg-emerald-500/10 text-emerald-400 font-medium">Index 100%</span>
+                    <span className="text-[11px] px-2 py-0.5 rounded-full bg-emerald-500/10 text-emerald-400 font-medium">Indexed</span>
                   </div>
-                  <h4 className="text-sm font-semibold text-[var(--text-primary)] truncate">Full-Text Cache Engine</h4>
-                  <p className="text-xs text-[var(--text-tertiary)] mt-1">Search latency: 2ms</p>
+                  <h4 className="text-sm font-semibold text-[var(--text-primary)] truncate">Cloud Search Engine</h4>
+                  <p className="text-xs text-[var(--text-tertiary)] mt-1">Search latency: ~3ms</p>
                 </div>
               </div>
             </div>
@@ -413,9 +413,9 @@ export const HomePage: React.FC = () => {
           
           <div className="text-center max-w-2xl mx-auto mb-14">
             <span className="text-xs font-bold uppercase tracking-widest text-[var(--accent)]">Experience It Live</span>
-            <h2 className="text-3xl sm:text-4xl font-extrabold mt-2">Interactive Vault Sandbox</h2>
+            <h2 className="text-3xl sm:text-4xl font-extrabold mt-2">Interactive Cloud Sandbox</h2>
             <p className="text-sm sm:text-base text-[var(--text-secondary)] mt-2">
-              Try DocVault’s search speed, category filtering, and metadata inspector directly on this page.
+              Explore DocVault's online search, category filtering, and document metadata inspector directly on this page.
             </p>
           </div>
 
@@ -430,7 +430,7 @@ export const HomePage: React.FC = () => {
                   <Search className="absolute left-3.5 top-1/2 -translate-y-1/2 w-4 h-4 text-[var(--text-tertiary)]" />
                   <input
                     type="text"
-                    placeholder="Search demo documents or tags (e.g. Audit, Legal)..."
+                    placeholder="Search online documents or tags (e.g. Audit, Legal)..."
                     value={sandboxSearch}
                     onChange={(e) => setSandboxSearch(e.target.value)}
                     className="w-full bg-[var(--bg-input)] border border-[var(--border-color)] rounded-xl pl-10 pr-4 py-2.5 text-sm text-[var(--text-primary)] focus:outline-none focus:border-[var(--accent)]"
@@ -514,9 +514,9 @@ export const HomePage: React.FC = () => {
                 <>
                   <div>
                     <div className="flex items-center justify-between pb-4 border-b border-[var(--border-color)] mb-4">
-                      <span className="text-xs font-bold text-[var(--accent)] uppercase tracking-wider">Vault File Metadata</span>
+                      <span className="text-xs font-bold text-[var(--accent)] uppercase tracking-wider">Cloud File Metadata</span>
                       <span className="px-2.5 py-1 rounded-full bg-emerald-500/10 text-emerald-400 text-xs font-semibold flex items-center gap-1">
-                        <Lock className="w-3 h-3" /> Encrypted
+                        <Globe className="w-3 h-3" /> Cloud Stored
                       </span>
                     </div>
 
@@ -551,9 +551,9 @@ export const HomePage: React.FC = () => {
                       <div>
                         <label className="text-xs text-[var(--text-tertiary)]">Security Verification</label>
                         <div className="p-3 rounded-xl bg-[var(--bg-input)] border border-[var(--border-color)] mt-1 font-mono text-[11px] text-[var(--text-secondary)] space-y-1">
-                          <p className="text-emerald-400">✓ Cipher: AES-256-GCM</p>
-                          <p>✓ HMAC: Verified</p>
-                          <p className="truncate">Key Hash: 0x8f4...e92a</p>
+                          <p className="text-emerald-400">✓ Protocol: HTTPS / TLS 1.3</p>
+                          <p>✓ Auth: JWT Verified</p>
+                          <p className="truncate">Cloud ID: dv-8f4a...e92a</p>
                         </div>
                       </div>
                     </div>
@@ -563,14 +563,14 @@ export const HomePage: React.FC = () => {
                     onClick={() => navigate(isAuthenticated ? '/' : '/login')}
                     className="w-full btn-accent py-3 rounded-xl text-xs font-bold uppercase tracking-wider flex items-center justify-center gap-2 cursor-pointer"
                   >
-                    Open in Full Vault Workspace
+                    Open in Cloud Workspace
                     <ArrowUpRight className="w-4 h-4" />
                   </button>
                 </>
               ) : (
                 <div className="flex flex-col items-center justify-center h-full text-center text-[var(--text-tertiary)] py-12">
                   <FileText className="w-10 h-10 mb-2 opacity-50" />
-                  <p className="text-sm">Select a file to inspect live metadata</p>
+                  <p className="text-sm">Select a file to inspect cloud metadata</p>
                 </div>
               )}
             </div>
@@ -583,9 +583,9 @@ export const HomePage: React.FC = () => {
         
         <div className="text-center max-w-3xl mx-auto mb-16 space-y-3">
           <span className="text-xs font-bold uppercase tracking-widest text-[var(--accent)]">Core Capabilities</span>
-          <h2 className="text-3xl sm:text-4xl font-extrabold">Built for Privacy, Engineered for Speed</h2>
+          <h2 className="text-3xl sm:text-4xl font-extrabold">Built for the Cloud, Engineered for Speed</h2>
           <p className="text-base text-[var(--text-secondary)]">
-            DocVault combines military-grade zero-knowledge security with an intuitive, ultra-fast user interface.
+            DocVault combines enterprise-grade online security with an intuitive, ultra-fast cloud document management experience.
           </p>
         </div>
 
@@ -631,24 +631,24 @@ export const HomePage: React.FC = () => {
             <div className="lg:col-span-5 space-y-6">
               <span className="text-xs font-bold uppercase tracking-widest text-[var(--accent)]">Interactive Calculator</span>
               <h2 className="text-3xl sm:text-4xl font-extrabold leading-tight">
-                Estimate Your Vault Requirements & Speed Gains
+                Estimate Your Cloud Storage & Performance
               </h2>
               <p className="text-sm sm:text-base text-[var(--text-secondary)] leading-relaxed">
-                Adjust your estimated monthly document volume to preview storage requirements and local client-side search performance.
+                Adjust your estimated document volume to preview online cloud storage requirements and search performance.
               </p>
 
               <div className="space-y-3 pt-2">
                 <div className="flex items-center gap-3 text-sm font-medium text-[var(--text-primary)]">
                   <CheckCircle className="w-5 h-5 text-emerald-400" />
-                  <span>Unlimited client-side indexing power</span>
+                  <span>High-performance cloud indexing engine</span>
                 </div>
                 <div className="flex items-center gap-3 text-sm font-medium text-[var(--text-primary)]">
                   <CheckCircle className="w-5 h-5 text-emerald-400" />
-                  <span>Zero network latency for cached documents</span>
+                  <span>Ultra-low latency online document streaming</span>
                 </div>
                 <div className="flex items-center gap-3 text-sm font-medium text-[var(--text-primary)]">
                   <CheckCircle className="w-5 h-5 text-emerald-400" />
-                  <span>SOC2 & ISO 27001 compliant storage layout</span>
+                  <span>SOC2 & ISO 27001 compliant cloud storage</span>
                 </div>
               </div>
             </div>
@@ -659,7 +659,7 @@ export const HomePage: React.FC = () => {
               {/* Slider 1: Document Count */}
               <div className="space-y-2">
                 <div className="flex justify-between items-center text-sm">
-                  <span className="font-semibold text-[var(--text-primary)]">Total Documents in Vault</span>
+                  <span className="font-semibold text-[var(--text-primary)]">Total Documents in Cloud</span>
                   <span className="font-extrabold text-[var(--accent)] text-lg">{docCount.toLocaleString()} Files</span>
                 </div>
                 <input
@@ -693,16 +693,16 @@ export const HomePage: React.FC = () => {
               {/* Results Grid */}
               <div className="grid grid-cols-3 gap-4 pt-4 border-t border-[var(--border-color)]">
                 <div className="glass-card p-4 rounded-2xl text-center">
-                  <span className="text-xs text-[var(--text-tertiary)] block">Estimated Capacity</span>
+                  <span className="text-xs text-[var(--text-tertiary)] block">Cloud Storage</span>
                   <span className="text-xl sm:text-2xl font-black text-[var(--text-primary)] mt-1 block">{totalStorageGb} GB</span>
                 </div>
                 <div className="glass-card p-4 rounded-2xl text-center">
-                  <span className="text-xs text-[var(--text-tertiary)] block">Search Latency</span>
+                  <span className="text-xs text-[var(--text-tertiary)] block">Online Search</span>
                   <span className="text-xl sm:text-2xl font-black text-emerald-400 mt-1 block">~{estimatedSearchSpeedMs} ms</span>
                 </div>
                 <div className="glass-card p-4 rounded-2xl text-center">
-                  <span className="text-xs text-[var(--text-tertiary)] block">Security Index</span>
-                  <span className="text-xl sm:text-2xl font-black text-[var(--accent)] mt-1 block">100% AES</span>
+                  <span className="text-xs text-[var(--text-tertiary)] block">Security</span>
+                  <span className="text-xl sm:text-2xl font-black text-[var(--accent)] mt-1 block">HTTPS</span>
                 </div>
               </div>
             </div>
@@ -714,10 +714,10 @@ export const HomePage: React.FC = () => {
       <section id="security" className="py-24 max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
         
         <div className="text-center max-w-3xl mx-auto mb-16 space-y-3">
-          <span className="text-xs font-bold uppercase tracking-widest text-[var(--accent)]">Security Standard</span>
+          <span className="text-xs font-bold uppercase tracking-widest text-[var(--accent)]">Security & Trust</span>
           <h2 className="text-3xl sm:text-4xl font-extrabold">Enterprise Security & Compliance</h2>
           <p className="text-base text-[var(--text-secondary)]">
-            Built from the ground up to meet the strictest industry standards for document protection.
+            Built from the ground up to meet the strictest industry standards for online document protection and cloud data security.
           </p>
         </div>
 
@@ -748,7 +748,7 @@ export const HomePage: React.FC = () => {
           
           <div className="text-center max-w-2xl mx-auto mb-14">
             <span className="text-xs font-bold uppercase tracking-widest text-[var(--accent)]">Trusted Worldwide</span>
-            <h2 className="text-3xl sm:text-4xl font-extrabold mt-2">Loved by Engineers & Security Teams</h2>
+            <h2 className="text-3xl sm:text-4xl font-extrabold mt-2">Loved by Teams & Organizations Worldwide</h2>
           </div>
 
           <div className="grid grid-cols-1 md:grid-cols-3 gap-8">
@@ -833,12 +833,12 @@ export const HomePage: React.FC = () => {
               </div>
 
               <p className="text-xs text-[var(--text-secondary)] leading-relaxed max-w-sm">
-                DocVault is an enterprise-grade document management platform providing zero-knowledge encryption, instant full-text search, and offline client PWA capabilities.
+                DocVault is an enterprise-grade online document management platform providing secure cloud storage, instant full-text search, and multi-device access over the internet.
               </p>
 
               <div className="flex items-center gap-2 pt-2">
                 <span className="w-2.5 h-2.5 rounded-full bg-emerald-400 animate-pulse" />
-                <span className="text-xs font-semibold text-[var(--text-secondary)]">All Systems Operational 🟢</span>
+                <span className="text-xs font-semibold text-[var(--text-secondary)]">Cloud Services Online 🟢</span>
               </div>
             </div>
 
@@ -846,17 +846,17 @@ export const HomePage: React.FC = () => {
             <div className="md:col-span-3 space-y-3">
               <h5 className="text-xs font-bold uppercase tracking-wider text-[var(--text-primary)]">Product & Features</h5>
               <ul className="space-y-2 text-xs text-[var(--text-secondary)]">
-                <li><a href="#features" className="hover:text-[var(--accent)] transition-colors">Zero-Knowledge Security</a></li>
-                <li><a href="#features" className="hover:text-[var(--accent)] transition-colors">Inline PDF Editor</a></li>
-                <li><a href="#demo" className="hover:text-[var(--accent)] transition-colors">Instant Full-Text Search</a></li>
-                <li><a href="#calculator" className="hover:text-[var(--accent)] transition-colors">Vault Storage Estimator</a></li>
+                <li><a href="#features" className="hover:text-[var(--accent)] transition-colors">Secure Cloud Storage</a></li>
+                <li><a href="#features" className="hover:text-[var(--accent)] transition-colors">Online PDF Viewer</a></li>
+                <li><a href="#demo" className="hover:text-[var(--accent)] transition-colors">Cloud Search Engine</a></li>
+                <li><a href="#calculator" className="hover:text-[var(--accent)] transition-colors">Storage Calculator</a></li>
               </ul>
             </div>
 
             {/* Newsletter Column */}
             <div className="md:col-span-4 space-y-3">
-              <h5 className="text-xs font-bold uppercase tracking-wider text-[var(--text-primary)]">Security Bulletins</h5>
-              <p className="text-xs text-[var(--text-secondary)]">Subscribe to monthly security advisories and vault update notes.</p>
+              <h5 className="text-xs font-bold uppercase tracking-wider text-[var(--text-primary)]">Platform Updates</h5>
+              <p className="text-xs text-[var(--text-secondary)]">Subscribe to monthly product updates and cloud platform release notes.</p>
               
               <form onSubmit={handleSubscribe} className="flex gap-2 pt-1">
                 <input
