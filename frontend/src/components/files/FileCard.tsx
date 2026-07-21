@@ -29,9 +29,17 @@ export const FileCard: React.FC<FileCardProps> = ({ file, isTrash = false }) => 
   const contextMenuRef = useRef<ContextMenuRef>(null);
   const confirm = useConfirmStore();
 
-  const handleRestore = async () => {
-    await restoreDocument(file.id);
-    toast.success('Restored file');
+  const handleRestore = () => {
+    confirm.triggerConfirm({
+      title: 'Restore File',
+      message: `Are you sure you want to restore "${file.name}" from the trash?`,
+      confirmText: 'Restore',
+      variant: 'primary',
+      onConfirm: async () => {
+        await restoreDocument(file.id);
+        toast.success('Restored file');
+      },
+    });
   };
 
   const handleSoftDelete = () => {

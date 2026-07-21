@@ -101,19 +101,27 @@ const TrashPage: React.FC = () => {
     const fileIds = selectedArray.filter((id) => documents.some((d) => d.id === id));
     const folderIds = selectedArray.filter((id) => folders.some((f) => f.id === id));
 
-    if (fileIds.length > 0) {
-      await bulkRestore(fileIds);
-    }
-    if (folderIds.length > 0) {
-      await fetch('/api/folders/bulk-restore', {
-        method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ ids: folderIds }),
-      });
-    }
-    toast.success(`Restored selected items`);
-    clearSelection();
-    await useAppStore.getState().fetchData();
+    confirm.triggerConfirm({
+      title: 'Restore Selected Items',
+      message: `Are you sure you want to restore the ${selectedIds.size} selected item(s)?`,
+      confirmText: 'Restore Items',
+      variant: 'primary',
+      onConfirm: async () => {
+        if (fileIds.length > 0) {
+          await bulkRestore(fileIds);
+        }
+        if (folderIds.length > 0) {
+          await fetch('/api/folders/bulk-restore', {
+            method: 'POST',
+            headers: { 'Content-Type': 'application/json' },
+            body: JSON.stringify({ ids: folderIds }),
+          });
+        }
+        toast.success(`Restored selected items`);
+        clearSelection();
+        await useAppStore.getState().fetchData();
+      },
+    });
   };
 
   const handleBulkPermanentDelete = async () => {
@@ -146,14 +154,22 @@ const TrashPage: React.FC = () => {
       {
         label: 'Restore',
         icon: <RotateCcw className="w-4 h-4" />,
-        onClick: async () => {
-          await fetch('/api/folders/bulk-restore', {
-            method: 'POST',
-            headers: { 'Content-Type': 'application/json' },
-            body: JSON.stringify({ ids: [folder.id] }),
+        onClick: () => {
+          confirm.triggerConfirm({
+            title: 'Restore Folder',
+            message: `Are you sure you want to restore the folder "${folder.name}"?`,
+            confirmText: 'Restore Folder',
+            variant: 'primary',
+            onConfirm: async () => {
+              await fetch('/api/folders/bulk-restore', {
+                method: 'POST',
+                headers: { 'Content-Type': 'application/json' },
+                body: JSON.stringify({ ids: [folder.id] }),
+              });
+              toast.success('Folder restored');
+              await useAppStore.getState().fetchData();
+            },
           });
-          toast.success('Folder restored');
-          await useAppStore.getState().fetchData();
         },
       },
       {
