@@ -943,25 +943,8 @@ export const HomePage: React.FC = () => {
             <div className="md:col-span-4 space-y-3">
               <h5 className="text-xs font-bold uppercase tracking-wider text-[var(--text-primary)]">Legal & Security</h5>
               <p className="text-xs text-[var(--text-secondary)] leading-relaxed">
-                DocVault is committed to secure, transparent document cloud management. Explore our compliance frameworks and legal agreements.
+                DocVault is committed to secure, transparent document cloud management. All data is protected under modern compliance frameworks, including zero-trust metadata isolation and end-to-end HTTPS/TLS protocols.
               </p>
-              <ul className="space-y-2 text-xs text-[var(--accent)] font-medium pt-1">
-                <li>
-                  <Link to="/privacy" className="hover:underline flex items-center gap-1.5">
-                    Privacy Policy
-                  </Link>
-                </li>
-                <li>
-                  <Link to="/terms" className="hover:underline flex items-center gap-1.5">
-                    Terms of Service
-                  </Link>
-                </li>
-                <li>
-                  <Link to="/security-whitepaper" className="hover:underline flex items-center gap-1.5">
-                    Security Whitepaper
-                  </Link>
-                </li>
-              </ul>
             </div>
           </div>
 
