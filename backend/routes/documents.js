@@ -385,34 +385,30 @@ router.get('/:id/file', async (req, res) => {
     // 2. If missing from local disk, fallback to streaming from Cloudinary
     if (doc.cloudinaryUrl) {
       console.log(`Local file missing. Fetching from Cloudinary: ${doc.cloudinaryUrl}`);
-      
-      const downloadUrl = doc.cloudinaryUrl;
-
-      const urlObj = new URL(downloadUrl);
-      const client = urlObj.protocol === 'https:' ? https : http;
-
-      client.get(downloadUrl, (cloudinaryRes) => {
-        if (cloudinaryRes.statusCode >= 400) {
-          console.error(`Cloudinary returned status code ${cloudinaryRes.statusCode} for URL: ${downloadUrl}`);
-          const statusCode = (cloudinaryRes.statusCode === 401 || cloudinaryRes.statusCode === 403) ? 502 : cloudinaryRes.statusCode;
+      try {
+        const cloudRes = await fetch(doc.cloudinaryUrl);
+        if (!cloudRes.ok) {
+          console.error(`Cloudinary fetch failed with status ${cloudRes.status}`);
+          const statusCode = (cloudRes.status === 401 || cloudRes.status === 403) ? 502 : cloudRes.status;
           return res.status(statusCode).json({ error: 'Failed to retrieve file from cloud storage' });
         }
 
-        res.setHeader('Content-Type', doc.mimeType || cloudinaryRes.headers['content-type'] || 'application/octet-stream');
-        if (cloudinaryRes.headers['content-length']) {
-          res.setHeader('Content-Length', cloudinaryRes.headers['content-length']);
+        res.setHeader('Content-Type', doc.mimeType || cloudRes.headers.get('content-type') || 'application/octet-stream');
+        const contentLength = cloudRes.headers.get('content-length');
+        if (contentLength) {
+          res.setHeader('Content-Length', contentLength);
         }
 
         if (isDownload) {
           res.setHeader('Content-Disposition', `attachment; filename="${encodeURIComponent(doc.name)}"`);
         }
 
-        cloudinaryRes.pipe(res);
-      }).on('error', (err) => {
-        console.error('Error streaming from Cloudinary:', err);
-        res.status(500).json({ error: 'Internal server error while retrieving file' });
-      });
-      return;
+        const arrayBuffer = await cloudRes.arrayBuffer();
+        return res.send(Buffer.from(arrayBuffer));
+      } catch (err) {
+        console.error('Error fetching from Cloudinary:', err);
+        return res.status(500).json({ error: 'Internal server error while retrieving file' });
+      }
     }
 
     return res.status(404).json({ error: 'File data not found on server or cloud' });

@@ -393,6 +393,11 @@ export async function getFileBlob(id: string): Promise<Blob | null> {
   try {
     const res = await fetch(`/api/documents/${id}/file`);
     if (res.ok) {
+      const contentType = res.headers.get('content-type');
+      if (contentType && contentType.includes('application/json')) {
+        console.warn(`File endpoint returned JSON response for document ${id}`);
+        return null;
+      }
       return await res.blob();
     }
   } catch (error) {

@@ -52,7 +52,7 @@ export const PreviewPanel: React.FC = () => {
     if (isText || isPdf) {
       setLoading(true);
       getFileBlob(fileId)
-        .then((blob) => {
+        .then(async (blob) => {
           if (!blob) {
             // Fallback to direct fileUrl (e.g. Cloudinary URL) if blob fetch returned null
             if (isPdf && fileUrl) {
@@ -65,9 +65,28 @@ export const PreviewPanel: React.FC = () => {
             return;
           }
 
-          const url = isPdf
-            ? URL.createObjectURL(new Blob([blob], { type: 'application/pdf' }))
-            : URL.createObjectURL(blob);
+          if (isPdf) {
+            try {
+              const header = await blob.slice(0, 5).text();
+              if (header.startsWith('%PDF')) {
+                const pdfBlob = new Blob([blob], { type: 'application/pdf' });
+                const url = URL.createObjectURL(pdfBlob);
+                setObjectUrl(url);
+              } else if (fileUrl) {
+                // If blob content isn't valid PDF binary, fallback to Cloudinary direct URL
+                setObjectUrl(fileUrl);
+              } else {
+                setObjectUrl(null);
+              }
+            } catch {
+              if (fileUrl) setObjectUrl(fileUrl);
+              else setObjectUrl(null);
+            }
+            setLoading(false);
+            return;
+          }
+
+          const url = URL.createObjectURL(blob);
           setObjectUrl(url);
 
           if (isText) {
