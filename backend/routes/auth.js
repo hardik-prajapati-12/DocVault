@@ -219,4 +219,53 @@ router.put('/change-password', authMiddleware, async (req, res) => {
   }
 });
 
+// Get user archive settings
+router.get('/archive-settings', authMiddleware, async (req, res) => {
+  try {
+    const user = await User.findOne({ id: req.user.id });
+    if (!user) {
+      return res.status(404).json({ error: 'User not found' });
+    }
+    res.json({
+      hasArchivePassword: !!user.archivePasswordHash,
+      archivePasswordHash: user.archivePasswordHash,
+      archiveSecurityQuestion: user.archiveSecurityQuestion,
+      archiveSecurityAnswerHash: user.archiveSecurityAnswerHash,
+    });
+  } catch (error) {
+    console.error('Get archive settings error:', error);
+    res.status(500).json({ error: error.message });
+  }
+});
+
+// Update user archive settings (set or reset archive password)
+router.put('/archive-settings', authMiddleware, async (req, res) => {
+  try {
+    const { archivePasswordHash, archiveSecurityQuestion, archiveSecurityAnswerHash } = req.body;
+    const user = await User.findOneAndUpdate(
+      { id: req.user.id },
+      {
+        archivePasswordHash,
+        archiveSecurityQuestion,
+        archiveSecurityAnswerHash,
+      },
+      { new: true }
+    );
+    if (!user) {
+      return res.status(404).json({ error: 'User not found' });
+    }
+    res.json({
+      message: 'Archive settings updated successfully',
+      hasArchivePassword: !!user.archivePasswordHash,
+      archivePasswordHash: user.archivePasswordHash,
+      archiveSecurityQuestion: user.archiveSecurityQuestion,
+      archiveSecurityAnswerHash: user.archiveSecurityAnswerHash,
+    });
+  } catch (error) {
+    console.error('Update archive settings error:', error);
+    res.status(500).json({ error: error.message });
+  }
+});
+
 export default router;
+

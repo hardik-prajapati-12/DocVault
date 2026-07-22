@@ -173,17 +173,61 @@ export const ArchivePage: React.FC = () => {
     return hashArray.map((b) => b.toString(16).padStart(2, '0')).join('');
   };
 
-  // Determine initial state based on whether a password exists in localStorage
+  // Archive settings state from server/cache
+  const [archiveSettingsLoaded, setArchiveSettingsLoaded] = useState(false);
+  const [remotePwdHash, setRemotePwdHash] = useState<string | null>(localStorage.getItem('archive_pwd_hash'));
+  const [remoteAnswerHash, setRemoteAnswerHash] = useState<string | null>(localStorage.getItem('archive_security_answer_hash'));
+
+  // Fetch archive settings from MongoDB user profile on mount
   useEffect(() => {
-    const pwdHash = localStorage.getItem('archive_pwd_hash');
+    const fetchArchiveSettings = async () => {
+      const token = localStorage.getItem('docvault-auth-token');
+      if (!token) {
+        setArchiveSettingsLoaded(true);
+        return;
+      }
+      try {
+        const res = await fetch('/api/auth/archive-settings', {
+          headers: { Authorization: `Bearer ${token}` },
+        });
+        if (res.ok) {
+          const data = await res.json();
+          if (data.hasArchivePassword) {
+            setRemotePwdHash(data.archivePasswordHash);
+            setRemoteAnswerHash(data.archiveSecurityAnswerHash);
+            if (data.archiveSecurityQuestion) {
+              setSelectedQuestion(data.archiveSecurityQuestion);
+              localStorage.setItem('archive_security_question', data.archiveSecurityQuestion);
+            }
+            if (data.archivePasswordHash) {
+              localStorage.setItem('archive_pwd_hash', data.archivePasswordHash);
+            }
+            if (data.archiveSecurityAnswerHash) {
+              localStorage.setItem('archive_security_answer_hash', data.archiveSecurityAnswerHash);
+            }
+          }
+        }
+      } catch (err) {
+        console.warn('Failed to fetch archive settings from server:', err);
+      } finally {
+        setArchiveSettingsLoaded(true);
+      }
+    };
+
+    fetchArchiveSettings();
+  }, []);
+
+  // Determine vault state based on server/local password state
+  useEffect(() => {
+    const pwdHash = remotePwdHash || localStorage.getItem('archive_pwd_hash');
     if (!pwdHash) {
-      setVaultState('setup');
+      if (archiveSettingsLoaded) setVaultState('setup');
     } else if (isUnlocked) {
       setVaultState('view');
     } else {
       setVaultState('unlock');
     }
-  }, [isUnlocked]);
+  }, [isUnlocked, remotePwdHash, archiveSettingsLoaded]);
 
   // Setup Password Submit
   const handleSetup = async (e: React.FormEvent) => {
@@ -207,9 +251,29 @@ export const ArchivePage: React.FC = () => {
       const pwdHash = await hashText(password);
       const answerHash = await hashText(securityAnswer);
 
+      // Save to localStorage
       localStorage.setItem('archive_pwd_hash', pwdHash);
       localStorage.setItem('archive_security_question', selectedQuestion);
       localStorage.setItem('archive_security_answer_hash', answerHash);
+      setRemotePwdHash(pwdHash);
+      setRemoteAnswerHash(answerHash);
+
+      // Persist to MongoDB user profile for cross-device sync
+      const token = localStorage.getItem('docvault-auth-token');
+      if (token) {
+        await fetch('/api/auth/archive-settings', {
+          method: 'PUT',
+          headers: {
+            'Content-Type': 'application/json',
+            Authorization: `Bearer ${token}`,
+          },
+          body: JSON.stringify({
+            archivePasswordHash: pwdHash,
+            archiveSecurityQuestion: selectedQuestion,
+            archiveSecurityAnswerHash: answerHash,
+          }),
+        }).catch(console.error);
+      }
 
       setIsUnlocked(true);
       setVaultState('view');
@@ -231,7 +295,7 @@ export const ArchivePage: React.FC = () => {
     e.preventDefault();
     setErrorMsg('');
 
-    const storedHash = localStorage.getItem('archive_pwd_hash');
+    const storedHash = remotePwdHash || localStorage.getItem('archive_pwd_hash');
     if (!storedHash) {
       setVaultState('setup');
       return;
@@ -253,7 +317,7 @@ export const ArchivePage: React.FC = () => {
     e.preventDefault();
     setErrorMsg('');
 
-    const storedAnswerHash = localStorage.getItem('archive_security_answer_hash');
+    const storedAnswerHash = remoteAnswerHash || localStorage.getItem('archive_security_answer_hash');
     if (!storedAnswerHash) {
       setErrorMsg('Recovery details missing. Please contact administrator.');
       return;
@@ -290,9 +354,29 @@ export const ArchivePage: React.FC = () => {
       const pwdHash = await hashText(password);
       const answerHash = await hashText(securityAnswer);
 
+      // Save to localStorage
       localStorage.setItem('archive_pwd_hash', pwdHash);
       localStorage.setItem('archive_security_question', selectedQuestion);
       localStorage.setItem('archive_security_answer_hash', answerHash);
+      setRemotePwdHash(pwdHash);
+      setRemoteAnswerHash(answerHash);
+
+      // Persist to MongoDB user profile for cross-device sync
+      const token = localStorage.getItem('docvault-auth-token');
+      if (token) {
+        await fetch('/api/auth/archive-settings', {
+          method: 'PUT',
+          headers: {
+            'Content-Type': 'application/json',
+            Authorization: `Bearer ${token}`,
+          },
+          body: JSON.stringify({
+            archivePasswordHash: pwdHash,
+            archiveSecurityQuestion: selectedQuestion,
+            archiveSecurityAnswerHash: answerHash,
+          }),
+        }).catch(console.error);
+      }
 
       setIsUnlocked(true);
       setVaultState('view');
@@ -315,6 +399,7 @@ export const ArchivePage: React.FC = () => {
     setPassword('');
     setShowPassword(false);
   };
+
 
   const handleBulkDelete = () => {
     if (selectedIds.size === 0) return;

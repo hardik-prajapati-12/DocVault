@@ -6,6 +6,9 @@ const UserSchema = new mongoose.Schema({
   email: { type: String, required: true, unique: true },
   profilePhoto: { type: String, default: null },
   password: { type: String, required: true },
+  archivePasswordHash: { type: String, default: null },
+  archiveSecurityQuestion: { type: String, default: null },
+  archiveSecurityAnswerHash: { type: String, default: null },
   createdAt: { type: Date, default: Date.now }
 });
 
