@@ -48,10 +48,27 @@ if (typeof window !== 'undefined') {
 
     // Auto-redirect to login on 401 (expired/invalid token)
     if (response.status === 401 && isApiCall && !isAuthRoute) {
-      localStorage.removeItem('docvault-auth-token');
-      localStorage.removeItem('docvault-auth-user');
-      if (!window.location.pathname.startsWith('/login')) {
-        window.location.href = '/login';
+      const isFileEndpoint = url.includes('/file');
+      if (isFileEndpoint) {
+        try {
+          const clone = response.clone();
+          const data = await clone.json();
+          if (data?.error === 'Invalid token.' || data?.error === 'Access denied. No token provided.') {
+            localStorage.removeItem('docvault-auth-token');
+            localStorage.removeItem('docvault-auth-user');
+            if (!window.location.pathname.startsWith('/login')) {
+              window.location.href = '/login';
+            }
+          }
+        } catch {
+          // If response body is not JSON or cannot be read, do not nuke auth token for file stream requests
+        }
+      } else {
+        localStorage.removeItem('docvault-auth-token');
+        localStorage.removeItem('docvault-auth-user');
+        if (!window.location.pathname.startsWith('/login')) {
+          window.location.href = '/login';
+        }
       }
     }
 

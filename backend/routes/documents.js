@@ -394,7 +394,8 @@ router.get('/:id/file', async (req, res) => {
       client.get(downloadUrl, (cloudinaryRes) => {
         if (cloudinaryRes.statusCode >= 400) {
           console.error(`Cloudinary returned status code ${cloudinaryRes.statusCode} for URL: ${downloadUrl}`);
-          return res.status(cloudinaryRes.statusCode).json({ error: 'Failed to retrieve file from cloud storage' });
+          const statusCode = (cloudinaryRes.statusCode === 401 || cloudinaryRes.statusCode === 403) ? 502 : cloudinaryRes.statusCode;
+          return res.status(statusCode).json({ error: 'Failed to retrieve file from cloud storage' });
         }
 
         res.setHeader('Content-Type', doc.mimeType || cloudinaryRes.headers['content-type'] || 'application/octet-stream');

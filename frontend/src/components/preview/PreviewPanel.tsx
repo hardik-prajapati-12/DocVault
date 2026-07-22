@@ -51,31 +51,50 @@ export const PreviewPanel: React.FC = () => {
 
     if (isText || isPdf) {
       setLoading(true);
-      getFileBlob(fileId).then((blob) => {
-        if (!blob) {
-          setLoading(false);
+      getFileBlob(fileId)
+        .then((blob) => {
+          if (!blob) {
+            // Fallback to direct fileUrl (e.g. Cloudinary URL) if blob fetch returned null
+            if (isPdf && fileUrl) {
+              setObjectUrl(fileUrl);
+            } else {
+              setObjectUrl(null);
+            }
+            setTextContent(null);
+            setLoading(false);
+            return;
+          }
+
+          const url = isPdf
+            ? URL.createObjectURL(new Blob([blob], { type: 'application/pdf' }))
+            : URL.createObjectURL(blob);
+          setObjectUrl(url);
+
+          if (isText) {
+            blob
+              .text()
+              .then((text) => {
+                setTextContent(text);
+                setLoading(false);
+              })
+              .catch(() => {
+                setTextContent(null);
+                setLoading(false);
+              });
+          } else {
+            setLoading(false);
+          }
+        })
+        .catch((err) => {
+          console.error('Error loading file blob for preview:', err);
+          if (isPdf && fileUrl) {
+            setObjectUrl(fileUrl);
+          } else {
+            setObjectUrl(null);
+          }
           setTextContent(null);
-          setObjectUrl(null);
-          return;
-        }
-
-        const url = URL.createObjectURL(blob);
-        setObjectUrl(url);
-
-        if (isText) {
-          blob.text()
-            .then((text) => {
-              setTextContent(text);
-              setLoading(false);
-            })
-            .catch(() => {
-              setTextContent(null);
-              setLoading(false);
-            });
-        } else {
           setLoading(false);
-        }
-      });
+        });
     } else {
       // Direct URL preview bypasses CORS/fetch constraints for images, videos, audio, and Office documents
       setObjectUrl(fileUrl);
