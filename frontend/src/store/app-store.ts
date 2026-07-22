@@ -32,6 +32,8 @@ interface AppState {
   downloadDialogFileId: string | null;
   settingsOpen: boolean;
   renameDialogFileId: string | null;
+  moveDialogFileId: string | null;
+  moveDialogFileIds: string[];
   activeFolderId: string | null;
 
   // Cloud Sync
@@ -61,6 +63,8 @@ interface AppState {
   setDownloadDialogFileId: (id: string | null) => void;
   setSettingsOpen: (open: boolean) => void;
   setRenameDialogFileId: (id: string | null) => void;
+  setMoveDialogFileId: (id: string | null) => void;
+  setMoveDialogFileIds: (ids: string[]) => void;
   setSyncSettings: (settings: {
     syncProvider: 'none' | 'webdav';
     webdavUrl: string;
@@ -98,6 +102,8 @@ export const useAppStore = create<AppState>()(
       downloadDialogFileId: null,
       settingsOpen: false,
       renameDialogFileId: null,
+      moveDialogFileId: null,
+      moveDialogFileIds: [],
       syncProvider: 'none',
       webdavUrl: '',
       webdavUsername: '',
@@ -135,6 +141,9 @@ export const useAppStore = create<AppState>()(
       setDownloadDialogFileId: (id) => set({ downloadDialogFileId: id }),
       setSettingsOpen: (open) => set({ settingsOpen: open }),
       setRenameDialogFileId: (id) => set({ renameDialogFileId: id }),
+      setMoveDialogFileId: (id) => set({ moveDialogFileId: id, moveDialogFileIds: id ? [id] : [] }),
+      setMoveDialogFileIds: (ids) => set({ moveDialogFileIds: ids, moveDialogFileId: ids.length === 1 ? ids[0] : null }),
+
       setSyncSettings: (settings) => set({ ...settings }),
       setLastSyncedAt: (lastSyncedAt) => set({ lastSyncedAt }),
       setActiveFolderId: (activeFolderId) => set({ activeFolderId }),

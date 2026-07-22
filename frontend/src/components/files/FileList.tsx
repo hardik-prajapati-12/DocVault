@@ -1,14 +1,14 @@
-import React, { useCallback } from 'react';
+import React, { useCallback, useMemo, useRef } from 'react';
 import { motion, AnimatePresence } from 'framer-motion';
 import { Virtuoso } from 'react-virtuoso';
 import {
-  Star, Download, Trash2, MoreVertical, Archive,
+  Star, Download, Trash2, MoreVertical, Archive, FolderInput, Eye, Edit3, Copy, RotateCcw
 } from 'lucide-react';
 import { FileIcon } from './FileIcon';
-import { FileListSkeleton } from '@/components/ui';
+import { FileListSkeleton, ContextMenu, type ContextMenuItem, type ContextMenuRef } from '@/components/ui';
 import { useAppStore } from '@/store/app-store';
 import { formatBytes, formatRelativeDate } from '@/utils';
-import { toggleFavorite, softDeleteDocument, restoreDocument, permanentDeleteDocument, archiveDocument, unarchiveDocument } from '@/services/file-service';
+import { toggleFavorite, softDeleteDocument, restoreDocument, permanentDeleteDocument, archiveDocument, unarchiveDocument, duplicateDocument } from '@/services/file-service';
 import type { DocFile } from '@/types';
 import toast from 'react-hot-toast';
 import { useConfirmStore } from '@/store/confirm-store';
@@ -22,10 +22,13 @@ interface FileListProps {
 const FileListRow: React.FC<{ file: DocFile; isTrash: boolean }> = ({ file, isTrash }) => {
   const setPreviewFileId = useAppStore((s) => s.setPreviewFileId);
   const setDownloadDialogFileId = useAppStore((s) => s.setDownloadDialogFileId);
+  const setRenameDialogFileId = useAppStore((s) => s.setRenameDialogFileId);
+  const setMoveDialogFileId = useAppStore((s) => s.setMoveDialogFileId);
   const selectedIds = useAppStore((s) => s.selectedIds);
   const selectionMode = useAppStore((s) => s.selectionMode);
   const toggleSelection = useAppStore((s) => s.toggleSelection);
   const confirm = useConfirmStore();
+  const contextMenuRef = useRef<ContextMenuRef>(null);
 
   const handleRestore = () => {
     confirm.triggerConfirm({
@@ -85,6 +88,25 @@ const FileListRow: React.FC<{ file: DocFile; isTrash: boolean }> = ({ file, isTr
     });
   };
 
+  const contextMenuItems = useMemo<ContextMenuItem[]>(() => {
+    if (isTrash) {
+      return [
+        { label: 'Restore', icon: <RotateCcw />, onClick: handleRestore },
+        { label: 'Delete Permanently', icon: <Trash2 />, onClick: handlePermanentDelete, variant: 'danger', divider: true },
+      ];
+    }
+    return [
+      { label: 'Preview', icon: <Eye />, onClick: () => setPreviewFileId(file.id) },
+      { label: 'Download', icon: <Download />, onClick: () => setDownloadDialogFileId(file.id) },
+      { label: 'Rename', icon: <Edit3 />, onClick: () => setRenameDialogFileId(file.id), divider: true },
+      { label: 'Duplicate', icon: <Copy />, onClick: async () => { await duplicateDocument(file.id); toast.success('Duplicated'); } },
+      { label: 'Move to Folder', icon: <FolderInput />, onClick: () => setMoveDialogFileId(file.id) },
+      { label: file.isFavorite === 1 ? 'Unfavorite' : 'Favorite', icon: <Star />, onClick: () => { toggleFavorite(file.id); toast.success(file.isFavorite === 1 ? 'Removed from favorites' : 'Added to favorites'); } },
+      { label: file.isArchived === 1 ? 'Unarchive' : 'Archive', icon: <Archive />, onClick: handleArchiveToggle },
+      { label: 'Move to Trash', icon: <Trash2 />, onClick: handleSoftDelete, variant: 'danger', divider: true },
+    ];
+  }, [file, isTrash, setPreviewFileId, setDownloadDialogFileId, setRenameDialogFileId, setMoveDialogFileId]);
+
   const isSelected = selectedIds.has(file.id);
 
   const handleClick = () => {
@@ -96,102 +118,111 @@ const FileListRow: React.FC<{ file: DocFile; isTrash: boolean }> = ({ file, isTr
   };
 
   return (
-    <motion.div
-      layout
-      initial={{ opacity: 0 }}
-      animate={{ opacity: 1 }}
-      exit={{ opacity: 0 }}
-      onClick={handleClick}
-      className={`flex items-center gap-4 px-4 py-3 border-b border-[var(--border-color)] hover:bg-[var(--bg-card-hover)] transition-colors cursor-pointer group
-        ${isSelected ? 'bg-[var(--accent-dim)]' : ''}`}
-    >
-      {/* Selection */}
-      {selectionMode && (
-        <div className={`w-5 h-5 rounded-md border-2 flex items-center justify-center flex-shrink-0
-          ${isSelected ? 'bg-[var(--accent)] border-[var(--accent)]' : 'border-[var(--text-tertiary)]'}`}
-        >
-          {isSelected && <span className="text-white text-xs font-bold">✓</span>}
-        </div>
-      )}
-
-      {/* Icon */}
-      <FileIcon extension={file.extension} size={18} />
-
-      {/* Name */}
-      <div className="flex-1 min-w-0">
-        <p className="text-sm font-medium text-[var(--text-primary)] truncate">{file.name}</p>
-        <p className="text-xs text-[var(--text-tertiary)]">{file.mimeType}</p>
-      </div>
-
-      {/* Size */}
-      <span className="text-xs text-[var(--text-secondary)] w-20 text-right hidden sm:block">
-        {formatBytes(file.size)}
-      </span>
-
-      {/* Extension */}
-      <span className="text-xs text-[var(--text-tertiary)] uppercase font-medium w-12 text-center hidden md:block">
-        {file.extension || '—'}
-      </span>
-
-      {/* Date */}
-      <span className="text-xs text-[var(--text-tertiary)] w-20 text-right hidden lg:block">
-        {formatRelativeDate(file.uploadedAt)}
-      </span>
-
-      {/* Favorite */}
-      {file.isFavorite === 1 && <Star className="w-3.5 h-3.5 text-amber-400 fill-amber-400 flex-shrink-0" />}
-
-      {/* Actions */}
-      <div className="flex gap-1 opacity-0 group-hover:opacity-100 transition-opacity flex-shrink-0">
-        {!isTrash ? (
-          <>
-            <button
-              onClick={(e) => { e.stopPropagation(); setDownloadDialogFileId(file.id); }}
-              className="p-1.5 rounded-lg hover:bg-[var(--bg-tertiary)] transition-colors cursor-pointer"
-              title="Download"
-            >
-              <Download className="w-3.5 h-3.5 text-[var(--text-secondary)]" />
-            </button>
-            <button
-              onClick={(e) => { e.stopPropagation(); toggleFavorite(file.id); toast.success(file.isFavorite === 1 ? 'Unfavorited' : 'Favorited'); }}
-              className="p-1.5 rounded-lg hover:bg-[var(--bg-tertiary)] transition-colors cursor-pointer"
-              title="Favorite"
-            >
-              <Star className={`w-3.5 h-3.5 ${file.isFavorite === 1 ? 'text-amber-400 fill-amber-400' : 'text-[var(--text-secondary)]'}`} />
-            </button>
-            <button
-              onClick={(e) => { e.stopPropagation(); handleArchiveToggle(); }}
-              className="p-1.5 rounded-lg hover:bg-[var(--bg-tertiary)] transition-colors cursor-pointer"
-              title={file.isArchived === 1 ? 'Unarchive' : 'Archive'}
-            >
-              <Archive className={`w-3.5 h-3.5 ${file.isArchived === 1 ? 'text-[var(--accent)] fill-[var(--accent-dim)]' : 'text-[var(--text-secondary)]'}`} />
-            </button>
-             <button
-              onClick={(e) => { e.stopPropagation(); handleSoftDelete(); }}
-              className="p-1.5 rounded-lg hover:bg-red-500/10 transition-colors cursor-pointer"
-              title="Delete"
-            >
-              <Trash2 className="w-3.5 h-3.5 text-[var(--text-secondary)]" />
-            </button>
-          </>
-        ) : (
-          <>
-            <button
-              onClick={(e) => { e.stopPropagation(); handleRestore(); }}
-              className="p-1.5 rounded-lg hover:bg-[var(--bg-tertiary)] transition-colors text-xs text-emerald-400 cursor-pointer"
-            >
-              Restore
-            </button>
-            <button
-              onClick={(e) => { e.stopPropagation(); handlePermanentDelete(); }}
-              className="p-1.5 rounded-lg hover:bg-red-500/10 transition-colors cursor-pointer"
-            >
-              <Trash2 className="w-3.5 h-3.5 text-red-400" />
-            </button>
-          </>
+    <ContextMenu ref={contextMenuRef} items={contextMenuItems}>
+      <motion.div
+        layout
+        initial={{ opacity: 0 }}
+        animate={{ opacity: 1 }}
+        exit={{ opacity: 0 }}
+        onClick={handleClick}
+        className={`flex items-center gap-4 px-4 py-3 border-b border-[var(--border-color)] hover:bg-[var(--bg-card-hover)] transition-colors cursor-pointer group
+          ${isSelected ? 'bg-[var(--accent-dim)]' : ''}`}
+      >
+        {/* Selection */}
+        {selectionMode && (
+          <div className={`w-5 h-5 rounded-md border-2 flex items-center justify-center flex-shrink-0
+            ${isSelected ? 'bg-[var(--accent)] border-[var(--accent)]' : 'border-[var(--text-tertiary)]'}`}
+          >
+            {isSelected && <span className="text-white text-xs font-bold">✓</span>}
+          </div>
         )}
-      </div>
-    </motion.div>
+
+        {/* Icon */}
+        <FileIcon extension={file.extension} size={18} />
+
+        {/* Name */}
+        <div className="flex-1 min-w-0">
+          <p className="text-sm font-medium text-[var(--text-primary)] truncate">{file.name}</p>
+          <p className="text-xs text-[var(--text-tertiary)]">{file.mimeType}</p>
+        </div>
+
+        {/* Size */}
+        <span className="text-xs text-[var(--text-secondary)] w-20 text-right hidden sm:block">
+          {formatBytes(file.size)}
+        </span>
+
+        {/* Extension */}
+        <span className="text-xs text-[var(--text-tertiary)] uppercase font-medium w-12 text-center hidden md:block">
+          {file.extension || '—'}
+        </span>
+
+        {/* Date */}
+        <span className="text-xs text-[var(--text-tertiary)] w-20 text-right hidden lg:block">
+          {formatRelativeDate(file.uploadedAt)}
+        </span>
+
+        {/* Favorite */}
+        {file.isFavorite === 1 && <Star className="w-3.5 h-3.5 text-amber-400 fill-amber-400 flex-shrink-0" />}
+
+        {/* Actions */}
+        <div className="flex gap-1 opacity-0 group-hover:opacity-100 transition-opacity flex-shrink-0">
+          {!isTrash ? (
+            <>
+              <button
+                onClick={(e) => { e.stopPropagation(); setDownloadDialogFileId(file.id); }}
+                className="p-1.5 rounded-lg hover:bg-[var(--bg-tertiary)] transition-colors cursor-pointer"
+                title="Download"
+              >
+                <Download className="w-3.5 h-3.5 text-[var(--text-secondary)]" />
+              </button>
+              <button
+                onClick={(e) => { e.stopPropagation(); setMoveDialogFileId(file.id); }}
+                className="p-1.5 rounded-lg hover:bg-[var(--bg-tertiary)] transition-colors cursor-pointer"
+                title="Move to Folder"
+              >
+                <FolderInput className="w-3.5 h-3.5 text-[var(--text-secondary)]" />
+              </button>
+              <button
+                onClick={(e) => { e.stopPropagation(); toggleFavorite(file.id); toast.success(file.isFavorite === 1 ? 'Unfavorited' : 'Favorited'); }}
+                className="p-1.5 rounded-lg hover:bg-[var(--bg-tertiary)] transition-colors cursor-pointer"
+                title="Favorite"
+              >
+                <Star className={`w-3.5 h-3.5 ${file.isFavorite === 1 ? 'text-amber-400 fill-amber-400' : 'text-[var(--text-secondary)]'}`} />
+              </button>
+              <button
+                onClick={(e) => { e.stopPropagation(); handleArchiveToggle(); }}
+                className="p-1.5 rounded-lg hover:bg-[var(--bg-tertiary)] transition-colors cursor-pointer"
+                title={file.isArchived === 1 ? 'Unarchive' : 'Archive'}
+              >
+                <Archive className={`w-3.5 h-3.5 ${file.isArchived === 1 ? 'text-[var(--accent)] fill-[var(--accent-dim)]' : 'text-[var(--text-secondary)]'}`} />
+              </button>
+              <button
+                onClick={(e) => { e.stopPropagation(); contextMenuRef.current?.showMenu(e); }}
+                className="p-1.5 rounded-lg hover:bg-[var(--bg-tertiary)] transition-colors cursor-pointer"
+                title="More"
+              >
+                <MoreVertical className="w-3.5 h-3.5 text-[var(--text-secondary)]" />
+              </button>
+            </>
+          ) : (
+            <>
+              <button
+                onClick={(e) => { e.stopPropagation(); handleRestore(); }}
+                className="p-1.5 rounded-lg hover:bg-[var(--bg-tertiary)] transition-colors text-xs text-emerald-400 cursor-pointer"
+              >
+                Restore
+              </button>
+              <button
+                onClick={(e) => { e.stopPropagation(); handlePermanentDelete(); }}
+                className="p-1.5 rounded-lg hover:bg-red-500/10 transition-colors cursor-pointer"
+              >
+                <Trash2 className="w-3.5 h-3.5 text-red-400" />
+              </button>
+            </>
+          )}
+        </div>
+      </motion.div>
+    </ContextMenu>
   );
 };
 

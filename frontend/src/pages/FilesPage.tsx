@@ -1,6 +1,6 @@
 import React, { useMemo } from 'react';
 import { motion } from 'framer-motion';
-import { Files, CheckSquare, Trash2, Download, X, Archive, Star } from 'lucide-react';
+import { Files, CheckSquare, Trash2, Download, X, Archive, Star, FolderInput } from 'lucide-react';
 import { useAppStore } from '@/store/app-store';
 import { useConfirmStore } from '@/store/confirm-store';
 import { FileGrid, FileList, FloatingActionButton } from '@/components/files';
@@ -83,6 +83,7 @@ const FilesPage: React.FC = () => {
   const setSelectionMode = useAppStore((s) => s.setSelectionMode);
   const selectAll = useAppStore((s) => s.selectAll);
   const setUploadModalOpen = useAppStore((s) => s.setUploadModalOpen);
+  const setMoveDialogFileIds = useAppStore((s) => s.setMoveDialogFileIds);
 
   const documents = useAppStore((s) => s.documents);
   const allFiles = useMemo(() => documents.filter((d) => d.isDeleted === 0 && d.isArchived === 0 && !d.folderId), [documents]);
@@ -157,6 +158,11 @@ const FilesPage: React.FC = () => {
     clearSelection();
   };
 
+  const handleBulkMove = () => {
+    if (selectedIds.size === 0) return;
+    setMoveDialogFileIds(Array.from(selectedIds));
+  };
+
   const loading = allFiles === undefined;
 
   return (
@@ -210,6 +216,14 @@ const FilesPage: React.FC = () => {
               onClick={() => selectAll(processedFiles.map((f) => f.id))}
             >
               Select All
+            </Button>
+            <Button
+              variant="secondary"
+              size="sm"
+              onClick={handleBulkMove}
+              icon={<FolderInput className="w-3.5 h-3.5 text-[var(--accent)]" />}
+            >
+              Move
             </Button>
             <Button
               variant="secondary"

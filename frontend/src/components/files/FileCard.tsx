@@ -21,6 +21,7 @@ export const FileCard: React.FC<FileCardProps> = ({ file, isTrash = false }) => 
   const setPreviewFileId = useAppStore((s) => s.setPreviewFileId);
   const setDownloadDialogFileId = useAppStore((s) => s.setDownloadDialogFileId);
   const setRenameDialogFileId = useAppStore((s) => s.setRenameDialogFileId);
+  const setMoveDialogFileId = useAppStore((s) => s.setMoveDialogFileId);
   const selectedIds = useAppStore((s) => s.selectedIds);
   const selectionMode = useAppStore((s) => s.selectionMode);
   const toggleSelection = useAppStore((s) => s.toggleSelection);
@@ -99,11 +100,13 @@ export const FileCard: React.FC<FileCardProps> = ({ file, isTrash = false }) => 
       { label: 'Download', icon: <Download />, onClick: () => setDownloadDialogFileId(file.id) },
       { label: 'Rename', icon: <Edit3 />, onClick: () => setRenameDialogFileId(file.id), divider: true },
       { label: 'Duplicate', icon: <Copy />, onClick: async () => { await duplicateDocument(file.id); toast.success('Duplicated'); } },
+      { label: 'Move to Folder', icon: <FolderInput />, onClick: () => setMoveDialogFileId(file.id) },
       { label: file.isFavorite === 1 ? 'Unfavorite' : 'Favorite', icon: <Star />, onClick: () => { toggleFavorite(file.id); toast.success(file.isFavorite === 1 ? 'Removed from favorites' : 'Added to favorites'); } },
       { label: file.isArchived === 1 ? 'Unarchive' : 'Archive', icon: <Archive />, onClick: handleArchiveToggle },
       { label: 'Move to Trash', icon: <Trash2 />, onClick: handleSoftDelete, variant: 'danger', divider: true },
     ];
-  }, [file, isTrash, setPreviewFileId, setDownloadDialogFileId, setRenameDialogFileId]);
+  }, [file, isTrash, setPreviewFileId, setDownloadDialogFileId, setRenameDialogFileId, setMoveDialogFileId]);
+
 
   const handleClick = (e: React.MouseEvent) => {
     if (selectionMode) {

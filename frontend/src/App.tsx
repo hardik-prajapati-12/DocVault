@@ -1,7 +1,7 @@
 import React from 'react';
 import { Toaster } from 'react-hot-toast';
 import { AppRouter } from '@/router';
-import { FileUploader, DownloadDialog, RenameDialog } from '@/components/files';
+import { FileUploader, DownloadDialog, RenameDialog, MoveToFolderDialog } from '@/components/files';
 import { PreviewPanel } from '@/components/preview';
 import { SettingsPanel } from '@/components/settings';
 import { useTheme, useKeyboardShortcuts, useOnlineStatus } from '@/hooks';
@@ -140,8 +140,10 @@ const App: React.FC = () => {
       <FileUploader />
       <DownloadDialog />
       <RenameDialog />
+      <MoveToFolderDialog />
       <PreviewPanel />
       <SettingsPanel />
+
 
       {/* Global Confirm Dialog */}
       <ConfirmDialog

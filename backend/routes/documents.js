@@ -346,6 +346,21 @@ router.post('/bulk-favorite', async (req, res) => {
   }
 });
 
+// Bulk Move
+router.post('/bulk-move', async (req, res) => {
+  try {
+    const { ids, folderId } = req.body;
+    await DocFile.updateMany(
+      { id: { $in: ids }, userId: req.user.id },
+      { folderId: folderId || null, modifiedAt: new Date() }
+    );
+    res.json({ message: 'Documents moved successfully' });
+  } catch (error) {
+    res.status(500).json({ error: error.message });
+  }
+});
+
+
 // Get file binary (handles local disk and streaming from Cloudinary as fallback)
 router.get('/:id/file', async (req, res) => {
   try {

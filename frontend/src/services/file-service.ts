@@ -463,6 +463,19 @@ export async function bulkFavorite(ids: string[], isFavorite: number = 1): Promi
 }
 
 /**
+ * Bulk move multiple documents to a folder.
+ */
+export async function bulkMoveDocuments(ids: string[], folderId: string | null): Promise<void> {
+  await fetch('/api/documents/bulk-move', {
+    method: 'POST',
+    headers: { 'Content-Type': 'application/json' },
+    body: JSON.stringify({ ids, folderId }),
+  });
+  await useAppStore.getState().fetchData();
+}
+
+
+/**
  * Create a folder.
  */
 export async function createFolder(name: string, parentId: string | null = null): Promise<string> {
