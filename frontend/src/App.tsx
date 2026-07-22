@@ -112,7 +112,12 @@ const App: React.FC = () => {
   const confirm = useConfirmStore();
 
   React.useEffect(() => {
+    document.title = 'DocVault — Document Management System';
+  }, []);
+
+  React.useEffect(() => {
     if (!isOnline) return;
+
 
     const token = localStorage.getItem('docvault-auth-token');
     if (token) {
