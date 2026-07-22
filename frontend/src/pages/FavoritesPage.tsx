@@ -1,7 +1,8 @@
 import React, { useMemo } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { motion } from 'framer-motion';
-import { Star, CheckSquare, X, Download, Archive, Trash2, Folder as FolderIcon, MoreVertical, Eye, Copy, Edit3 } from 'lucide-react';
+import { Star, CheckSquare, X, Download, Archive, Trash2, Folder as FolderIcon, MoreVertical, Eye, Copy, Edit3, FolderInput } from 'lucide-react';
+
 import { useAppStore } from '@/store/app-store';
 import { useConfirmStore } from '@/store/confirm-store';
 import { FileGrid, FileList } from '@/components/files';
@@ -69,6 +70,8 @@ export const FavoritesPage: React.FC = () => {
   const setSelectionMode = useAppStore((s) => s.setSelectionMode);
   const selectAll = useAppStore((s) => s.selectAll);
   const toggleSelection = useAppStore((s) => s.toggleSelection);
+  const setMoveDialogFolderId = useAppStore((s) => s.setMoveDialogFolderId);
+
 
   // Clear selections on unmount
   React.useEffect(() => {
@@ -274,7 +277,13 @@ export const FavoritesPage: React.FC = () => {
         },
       },
       {
+        label: 'Move to Folder',
+        icon: <FolderInput className="w-4 h-4" />,
+        onClick: () => setMoveDialogFolderId(folder.id),
+      },
+      {
         label: 'Unfavorite',
+
         icon: <Star className="w-4 h-4 text-amber-400 fill-amber-400" />,
         onClick: async () => {
           await fetch(`/api/folders/${folder.id}/favorite`, {

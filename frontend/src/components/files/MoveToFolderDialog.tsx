@@ -8,10 +8,17 @@ import {
   ChevronDown,
   Check,
   Layers,
+  Lock,
 } from 'lucide-react';
 import { Modal, Button } from '@/components/ui';
 import { useAppStore } from '@/store/app-store';
-import { moveDocument, bulkMoveDocuments, createFolder } from '@/services/file-service';
+import {
+  moveDocument,
+  bulkMoveDocuments,
+  moveFolder,
+  bulkMoveFolders,
+  createFolder,
+} from '@/services/file-service';
 import type { Folder, DocFile } from '@/types';
 import toast from 'react-hot-toast';
 
@@ -21,6 +28,7 @@ interface FolderNodeProps {
   documents: DocFile[];
   selectedFolderId: string | null;
   currentFolderId: string | null;
+  forbiddenFolderIds: Set<string>;
   onSelect: (folderId: string) => void;
   searchQuery: string;
   depth?: number;
@@ -32,6 +40,7 @@ const FolderNode: React.FC<FolderNodeProps> = ({
   documents,
   selectedFolderId,
   currentFolderId,
+  forbiddenFolderIds,
   onSelect,
   searchQuery,
   depth = 0,
@@ -52,6 +61,7 @@ const FolderNode: React.FC<FolderNodeProps> = ({
 
   const isSelected = selectedFolderId === folder.id;
   const isCurrentLocation = currentFolderId === folder.id;
+  const isDisabled = forbiddenFolderIds.has(folder.id);
 
   // Filter check if searching
   const matchesSearch = !searchQuery || folder.name.toLowerCase().includes(searchQuery.toLowerCase());
@@ -71,13 +81,17 @@ const FolderNode: React.FC<FolderNodeProps> = ({
   return (
     <div className="select-none">
       <div
-        onClick={() => onSelect(folder.id)}
+        onClick={() => {
+          if (!isDisabled) onSelect(folder.id);
+        }}
         style={{ paddingLeft: `${depth * 16 + 12}px` }}
-        className={`flex items-center gap-2.5 py-2.5 pr-3 rounded-xl cursor-pointer transition-all duration-150 group my-0.5
+        className={`flex items-center gap-2.5 py-2.5 pr-3 rounded-xl transition-all duration-150 group my-0.5
           ${
-            isSelected
-              ? 'bg-[var(--accent)] text-white shadow-md shadow-blue-500/20 font-medium'
-              : 'hover:bg-[var(--bg-tertiary)] text-[var(--text-primary)]'
+            isDisabled
+              ? 'opacity-40 cursor-not-allowed bg-[var(--bg-tertiary)]/50'
+              : isSelected
+              ? 'bg-[var(--accent)] text-white shadow-md shadow-blue-500/20 font-medium cursor-pointer'
+              : 'hover:bg-[var(--bg-tertiary)] text-[var(--text-primary)] cursor-pointer'
           }`}
       >
         {childFolders.length > 0 ? (
@@ -105,7 +119,13 @@ const FolderNode: React.FC<FolderNodeProps> = ({
 
         <span className="text-sm truncate flex-1">{folder.name}</span>
 
-        {isCurrentLocation && (
+        {isDisabled && (
+          <span className="text-[10px] text-[var(--text-tertiary)] flex items-center gap-1 font-medium">
+            <Lock className="w-3 h-3" /> Cannot move here
+          </span>
+        )}
+
+        {isCurrentLocation && !isDisabled && (
           <span
             className={`text-[10px] px-2 py-0.5 rounded-full font-medium uppercase tracking-wider ${
               isSelected ? 'bg-white/20 text-white' : 'bg-[var(--bg-tertiary)] text-[var(--text-tertiary)]'
@@ -115,7 +135,7 @@ const FolderNode: React.FC<FolderNodeProps> = ({
           </span>
         )}
 
-        {fileCount > 0 && !isCurrentLocation && (
+        {fileCount > 0 && !isCurrentLocation && !isDisabled && (
           <span
             className={`text-xs ${
               isSelected ? 'text-white/80' : 'text-[var(--text-tertiary)]'
@@ -138,6 +158,7 @@ const FolderNode: React.FC<FolderNodeProps> = ({
               documents={documents}
               selectedFolderId={selectedFolderId}
               currentFolderId={currentFolderId}
+              forbiddenFolderIds={forbiddenFolderIds}
               onSelect={onSelect}
               searchQuery={searchQuery}
               depth={depth + 1}
@@ -152,13 +173,15 @@ const FolderNode: React.FC<FolderNodeProps> = ({
 export const MoveToFolderDialog: React.FC = () => {
   const moveDialogFileId = useAppStore((s) => s.moveDialogFileId);
   const moveDialogFileIds = useAppStore((s) => s.moveDialogFileIds);
-  const setMoveDialogFileId = useAppStore((s) => s.setMoveDialogFileId);
-  const setMoveDialogFileIds = useAppStore((s) => s.setMoveDialogFileIds);
+  const moveDialogFolderId = useAppStore((s) => s.moveDialogFolderId);
+  const moveDialogFolderIds = useAppStore((s) => s.moveDialogFolderIds);
+  const clearMoveDialog = useAppStore((s) => s.clearMoveDialog);
 
   const documents = useAppStore((s) => s.documents);
   const folders = useAppStore((s) => s.folders);
   const clearSelection = useAppStore((s) => s.clearSelection);
 
+  // Files being moved
   const targetFiles = useMemo(() => {
     if (moveDialogFileIds.length > 0) {
       return documents.filter((d) => moveDialogFileIds.includes(d.id));
@@ -170,17 +193,49 @@ export const MoveToFolderDialog: React.FC = () => {
     return [];
   }, [moveDialogFileId, moveDialogFileIds, documents]);
 
-  const isOpen = targetFiles.length > 0;
-
-  // Single file current folder or common current folder
-  const currentFolderId = useMemo(() => {
-    if (targetFiles.length === 1) {
-      return targetFiles[0].folderId;
+  // Folders being moved
+  const targetFolders = useMemo(() => {
+    if (moveDialogFolderIds.length > 0) {
+      return folders.filter((f) => moveDialogFolderIds.includes(f.id));
     }
-    const firstFolderId = targetFiles[0]?.folderId ?? null;
-    const sameFolder = targetFiles.every((f) => f.folderId === firstFolderId);
-    return sameFolder ? firstFolderId : null;
-  }, [targetFiles]);
+    if (moveDialogFolderId) {
+      const fld = folders.find((f) => f.id === moveDialogFolderId);
+      return fld ? [fld] : [];
+    }
+    return [];
+  }, [moveDialogFolderId, moveDialogFolderIds, folders]);
+
+  const isOpen = targetFiles.length > 0 || targetFolders.length > 0;
+
+  // Compute forbidden folder IDs (cannot move a folder into itself or its own descendants)
+  const forbiddenFolderIds = useMemo(() => {
+    const forbidden = new Set<string>();
+    targetFolders.forEach((tf) => {
+      forbidden.add(tf.id);
+      const collectSubFolderIds = (fId: string) => {
+        folders.forEach((sub) => {
+          if (sub.parentId === fId) {
+            forbidden.add(sub.id);
+            collectSubFolderIds(sub.id);
+          }
+        });
+      };
+      collectSubFolderIds(tf.id);
+    });
+    return forbidden;
+  }, [targetFolders, folders]);
+
+  // Source current parent folder ID
+  const currentFolderId = useMemo(() => {
+    const allItems = [
+      ...targetFiles.map((f) => f.folderId),
+      ...targetFolders.map((f) => f.parentId),
+    ];
+    if (allItems.length === 0) return null;
+    const firstParentId = allItems[0];
+    const allSame = allItems.every((pid) => pid === firstParentId);
+    return allSame ? firstParentId : null;
+  }, [targetFiles, targetFolders]);
 
   const [selectedFolderId, setSelectedFolderId] = useState<string | null>(null);
   const [searchQuery, setSearchQuery] = useState('');
@@ -190,7 +245,6 @@ export const MoveToFolderDialog: React.FC = () => {
 
   useEffect(() => {
     if (isOpen) {
-      // Default selection is null (Root) or if file is already in root, null
       setSelectedFolderId(currentFolderId ?? null);
       setSearchQuery('');
       setIsCreatingFolder(false);
@@ -199,8 +253,7 @@ export const MoveToFolderDialog: React.FC = () => {
   }, [isOpen, currentFolderId]);
 
   const handleClose = () => {
-    setMoveDialogFileId(null);
-    setMoveDialogFileIds([]);
+    clearMoveDialog();
   };
 
   // Top-level active folders
@@ -208,6 +261,23 @@ export const MoveToFolderDialog: React.FC = () => {
     () => folders.filter((f) => f.parentId === null && f.isDeleted !== 1),
     [folders]
   );
+
+  // Source description for banner
+  const sourceDescription = useMemo(() => {
+    const totalFiles = targetFiles.length;
+    const totalFolders = targetFolders.length;
+
+    if (totalFolders === 1 && totalFiles === 0) {
+      return `Folder "${targetFolders[0].name}"`;
+    }
+    if (totalFiles === 1 && totalFolders === 0) {
+      return `File "${targetFiles[0].name}"`;
+    }
+    const parts: string[] = [];
+    if (totalFolders > 0) parts.push(`${totalFolders} ${totalFolders === 1 ? 'folder' : 'folders'}`);
+    if (totalFiles > 0) parts.push(`${totalFiles} ${totalFiles === 1 ? 'file' : 'files'}`);
+    return parts.join(' & ');
+  }, [targetFiles, targetFolders]);
 
   // Active current folder name for banner context
   const currentFolderName = useMemo(() => {
@@ -237,22 +307,31 @@ export const MoveToFolderDialog: React.FC = () => {
 
   // Execute Move
   const handleMove = async () => {
-    if (targetFiles.length === 0 || isSubmitting) return;
+    if ((targetFiles.length === 0 && targetFolders.length === 0) || isSubmitting) return;
 
     setIsSubmitting(true);
     try {
+      // 1. Move Files if any
       const fileIds = targetFiles.map((f) => f.id);
       if (fileIds.length === 1) {
         await moveDocument(fileIds[0], selectedFolderId);
-        toast.success(`Moved "${targetFiles[0].name}" to ${selectedTargetName}`);
-      } else {
+      } else if (fileIds.length > 1) {
         await bulkMoveDocuments(fileIds, selectedFolderId);
-        toast.success(`Moved ${fileIds.length} files to ${selectedTargetName}`);
       }
+
+      // 2. Move Folders if any
+      const folderIds = targetFolders.map((f) => f.id);
+      if (folderIds.length === 1) {
+        await moveFolder(folderIds[0], selectedFolderId);
+      } else if (folderIds.length > 1) {
+        await bulkMoveFolders(folderIds, selectedFolderId);
+      }
+
+      toast.success(`Moved ${sourceDescription} to ${selectedTargetName}`);
       clearSelection();
       handleClose();
     } catch (err: any) {
-      toast.error(err.message || 'Failed to move files');
+      toast.error(err.message || 'Failed to move items');
     } finally {
       setIsSubmitting(false);
     }
@@ -263,7 +342,7 @@ export const MoveToFolderDialog: React.FC = () => {
   return (
     <Modal isOpen={isOpen} onClose={handleClose} title="Move to Folder" maxWidth="max-w-lg">
       <div className="space-y-4">
-        {/* Source File Info Header */}
+        {/* Source File/Folder Info Header */}
         <div className="flex items-center justify-between px-3.5 py-2.5 rounded-xl bg-[var(--bg-tertiary)] border border-[var(--border-color)]">
           <div className="flex items-center gap-2.5 min-w-0">
             <div className="w-8 h-8 rounded-lg bg-[var(--accent-dim)] flex items-center justify-center flex-shrink-0">
@@ -272,9 +351,7 @@ export const MoveToFolderDialog: React.FC = () => {
             <div className="min-w-0">
               <p className="text-xs text-[var(--text-tertiary)]">Moving:</p>
               <h4 className="text-sm font-semibold text-[var(--text-primary)] truncate">
-                {targetFiles.length === 1
-                  ? targetFiles[0].name
-                  : `${targetFiles.length} files selected`}
+                {sourceDescription}
               </h4>
             </div>
           </div>
@@ -350,7 +427,7 @@ export const MoveToFolderDialog: React.FC = () => {
                     selectedFolderId === null ? 'text-white/80' : 'text-[var(--text-tertiary)]'
                   }`}
                 >
-                  All Files (No Folder)
+                  All Files & Folders (Main Directory)
                 </span>
               </div>
 
@@ -379,6 +456,7 @@ export const MoveToFolderDialog: React.FC = () => {
               documents={documents}
               selectedFolderId={selectedFolderId}
               currentFolderId={currentFolderId}
+              forbiddenFolderIds={forbiddenFolderIds}
               onSelect={(id) => setSelectedFolderId(id)}
               searchQuery={searchQuery}
             />

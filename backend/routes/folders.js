@@ -36,13 +36,16 @@ router.post('/', async (req, res) => {
   }
 });
 
-// Rename folder
+// Rename or Move folder
 router.put('/:id', async (req, res) => {
   try {
-    const { name } = req.body;
+    const updates = { modifiedAt: new Date() };
+    if (req.body.name !== undefined) updates.name = req.body.name;
+    if (req.body.parentId !== undefined) updates.parentId = req.body.parentId || null;
+
     const folder = await Folder.findOneAndUpdate(
       { id: req.params.id, userId: req.user.id },
-      { name, modifiedAt: new Date() },
+      updates,
       { new: true }
     );
     if (!folder) return res.status(404).json({ error: 'Folder not found' });
@@ -51,6 +54,21 @@ router.put('/:id', async (req, res) => {
     res.status(500).json({ error: error.message });
   }
 });
+
+// Bulk Move folders
+router.post('/bulk-move', async (req, res) => {
+  try {
+    const { ids, parentId } = req.body;
+    await Folder.updateMany(
+      { id: { $in: ids }, userId: req.user.id },
+      { parentId: parentId || null, modifiedAt: new Date() }
+    );
+    res.json({ message: 'Folders moved successfully' });
+  } catch (error) {
+    res.status(500).json({ error: error.message });
+  }
+});
+
 
 // Recursive folder soft deletion helper
 async function softDeleteFolderAndContents(folderId, isDeleted) {

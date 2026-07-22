@@ -16,8 +16,10 @@ import {
   Star,
   Archive,
   Eye,
-  Copy
+  Copy,
+  FolderInput,
 } from 'lucide-react';
+
 import { useAppStore } from '@/store/app-store';
 import { useConfirmStore } from '@/store/confirm-store';
 import {
@@ -84,6 +86,9 @@ export const FoldersPage: React.FC = () => {
   const confirm = useConfirmStore();
   const setActiveFolderId = useAppStore((s) => s.setActiveFolderId);
   const setUploadModalOpen = useAppStore((s) => s.setUploadModalOpen);
+  const setMoveDialogFolderId = useAppStore((s) => s.setMoveDialogFolderId);
+  const setMoveDialogItems = useAppStore((s) => s.setMoveDialogItems);
+
 
   const folders = useAppStore((s) => s.folders) ?? [];
   const documents = useAppStore((s) => s.documents) ?? [];
@@ -343,6 +348,14 @@ export const FoldersPage: React.FC = () => {
     clearSelection();
   };
 
+  const handleBulkMove = () => {
+    if (selectedIds.size === 0) return;
+    const selectedArray = Array.from(selectedIds);
+    const fileIds = selectedArray.filter((id) => documents.some((d) => d.id === id));
+    const folderIds = selectedArray.filter((id) => folders.some((f) => f.id === id));
+    setMoveDialogItems(fileIds, folderIds);
+  };
+
   // Context Menu builder helper
   const FolderCardWithContext: React.FC<{ folder: Folder }> = ({ folder }) => {
     const contextMenuRef = useRef<ContextMenuRef>(null);
@@ -412,7 +425,13 @@ export const FoldersPage: React.FC = () => {
         },
       },
       {
+        label: 'Move to Folder',
+        icon: <FolderInput className="w-4 h-4" />,
+        onClick: () => setMoveDialogFolderId(folder.id),
+      },
+      {
         label: folder.isFavorite === 1 ? 'Unfavorite' : 'Favorite',
+
         icon: <Star className={`w-4 h-4 ${folder.isFavorite === 1 ? 'text-amber-400 fill-amber-400' : ''}`} />,
         onClick: async () => {
           const nextVal = folder.isFavorite === 1 ? 0 : 1;
@@ -719,11 +738,20 @@ export const FoldersPage: React.FC = () => {
                 <Button
                   variant="secondary"
                   size="sm"
+                  onClick={handleBulkMove}
+                  icon={<FolderInput className="w-3.5 h-3.5 text-[var(--accent)]" />}
+                >
+                  Move
+                </Button>
+                <Button
+                  variant="secondary"
+                  size="sm"
                   onClick={handleBulkDownload}
                   icon={<Download className="w-3.5 h-3.5" />}
                 >
                   Download
                 </Button>
+
                 <Button
                   variant="secondary"
                   size="sm"

@@ -516,6 +516,39 @@ export async function renameFolder(id: string, newName: string): Promise<void> {
 }
 
 /**
+ * Move a folder to a different parent folder (or null for root).
+ */
+export async function moveFolder(id: string, parentId: string | null): Promise<void> {
+  const res = await fetch(`/api/folders/${id}`, {
+    method: 'PUT',
+    headers: { 'Content-Type': 'application/json' },
+    body: JSON.stringify({ parentId }),
+  });
+  if (!res.ok) {
+    const err = await res.json().catch(() => ({}));
+    throw new Error(err.error || 'Failed to move folder');
+  }
+  await useAppStore.getState().fetchData();
+}
+
+/**
+ * Bulk move multiple folders.
+ */
+export async function bulkMoveFolders(ids: string[], parentId: string | null): Promise<void> {
+  const res = await fetch('/api/folders/bulk-move', {
+    method: 'POST',
+    headers: { 'Content-Type': 'application/json' },
+    body: JSON.stringify({ ids, parentId }),
+  });
+  if (!res.ok) {
+    const err = await res.json().catch(() => ({}));
+    throw new Error(err.error || 'Failed to move folders');
+  }
+  await useAppStore.getState().fetchData();
+}
+
+
+/**
  * Delete a folder and all its contents.
  */
 export async function deleteFolder(id: string): Promise<void> {

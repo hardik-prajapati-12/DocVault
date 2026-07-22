@@ -34,6 +34,8 @@ interface AppState {
   renameDialogFileId: string | null;
   moveDialogFileId: string | null;
   moveDialogFileIds: string[];
+  moveDialogFolderId: string | null;
+  moveDialogFolderIds: string[];
   activeFolderId: string | null;
 
   // Cloud Sync
@@ -65,6 +67,10 @@ interface AppState {
   setRenameDialogFileId: (id: string | null) => void;
   setMoveDialogFileId: (id: string | null) => void;
   setMoveDialogFileIds: (ids: string[]) => void;
+  setMoveDialogFolderId: (id: string | null) => void;
+  setMoveDialogFolderIds: (ids: string[]) => void;
+  setMoveDialogItems: (fileIds: string[], folderIds: string[]) => void;
+  clearMoveDialog: () => void;
   setSyncSettings: (settings: {
     syncProvider: 'none' | 'webdav';
     webdavUrl: string;
@@ -104,6 +110,8 @@ export const useAppStore = create<AppState>()(
       renameDialogFileId: null,
       moveDialogFileId: null,
       moveDialogFileIds: [],
+      moveDialogFolderId: null,
+      moveDialogFolderIds: [],
       syncProvider: 'none',
       webdavUrl: '',
       webdavUsername: '',
@@ -141,8 +149,18 @@ export const useAppStore = create<AppState>()(
       setDownloadDialogFileId: (id) => set({ downloadDialogFileId: id }),
       setSettingsOpen: (open) => set({ settingsOpen: open }),
       setRenameDialogFileId: (id) => set({ renameDialogFileId: id }),
-      setMoveDialogFileId: (id) => set({ moveDialogFileId: id, moveDialogFileIds: id ? [id] : [] }),
-      setMoveDialogFileIds: (ids) => set({ moveDialogFileIds: ids, moveDialogFileId: ids.length === 1 ? ids[0] : null }),
+      setMoveDialogFileId: (id) => set({ moveDialogFileId: id, moveDialogFileIds: id ? [id] : [], moveDialogFolderId: null, moveDialogFolderIds: [] }),
+      setMoveDialogFileIds: (ids) => set({ moveDialogFileIds: ids, moveDialogFileId: ids.length === 1 ? ids[0] : null, moveDialogFolderId: null, moveDialogFolderIds: [] }),
+      setMoveDialogFolderId: (id) => set({ moveDialogFolderId: id, moveDialogFolderIds: id ? [id] : [], moveDialogFileId: null, moveDialogFileIds: [] }),
+      setMoveDialogFolderIds: (ids) => set({ moveDialogFolderIds: ids, moveDialogFolderId: ids.length === 1 ? ids[0] : null, moveDialogFileId: null, moveDialogFileIds: [] }),
+      setMoveDialogItems: (fileIds, folderIds) => set({
+        moveDialogFileIds: fileIds,
+        moveDialogFileId: fileIds.length === 1 ? fileIds[0] : null,
+        moveDialogFolderIds: folderIds,
+        moveDialogFolderId: folderIds.length === 1 ? folderIds[0] : null,
+      }),
+      clearMoveDialog: () => set({ moveDialogFileId: null, moveDialogFileIds: [], moveDialogFolderId: null, moveDialogFolderIds: [] }),
+
 
       setSyncSettings: (settings) => set({ ...settings }),
       setLastSyncedAt: (lastSyncedAt) => set({ lastSyncedAt }),
