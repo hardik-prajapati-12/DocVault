@@ -370,13 +370,14 @@ router.get('/:id/file', async (req, res) => {
     }
 
     const isDownload = req.query.download === 'true';
+    const safeFileName = doc.name.replace(/["\r\n]/g, '_');
 
     // 1. Try serving from local disk first
     if (doc.opfsPath) {
       const localPath = path.join('uploads', doc.opfsPath);
       if (fs.existsSync(localPath)) {
         if (isDownload) {
-          res.setHeader('Content-Disposition', `attachment; filename="${encodeURIComponent(doc.name)}"`);
+          res.setHeader('Content-Disposition', `attachment; filename="${encodeURIComponent(safeFileName)}"`);
         }
         return res.sendFile(path.resolve(localPath));
       }
@@ -386,7 +387,12 @@ router.get('/:id/file', async (req, res) => {
     if (doc.cloudinaryUrl) {
       console.log(`Local file missing. Fetching from Cloudinary: ${doc.cloudinaryUrl}`);
       try {
-        const cloudRes = await fetch(doc.cloudinaryUrl);
+        const cloudRes = await fetch(doc.cloudinaryUrl, {
+          headers: {
+            'User-Agent': 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/120.0.0.0 Safari/537.36',
+            'Accept': '*/*'
+          }
+        });
         if (!cloudRes.ok) {
           console.error(`Cloudinary fetch failed with status ${cloudRes.status}`);
           const statusCode = (cloudRes.status === 401 || cloudRes.status === 403) ? 502 : cloudRes.status;
@@ -400,7 +406,7 @@ router.get('/:id/file', async (req, res) => {
         }
 
         if (isDownload) {
-          res.setHeader('Content-Disposition', `attachment; filename="${encodeURIComponent(doc.name)}"`);
+          res.setHeader('Content-Disposition', `attachment; filename="${encodeURIComponent(safeFileName)}"`);
         }
 
         const arrayBuffer = await cloudRes.arrayBuffer();

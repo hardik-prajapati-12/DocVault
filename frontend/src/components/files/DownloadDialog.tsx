@@ -191,30 +191,66 @@ export const DownloadDialog: React.FC = () => {
 
   const handleDownloadOriginal = async () => {
     if (!file) return;
+
+    // Tier 1: Primary fetch via server endpoint with authentication token
     try {
       const token = localStorage.getItem('docvault-auth-token');
       const res = await fetch(`/api/documents/${file.id}/file?download=true`, {
-        headers: {
-          'Authorization': `Bearer ${token}`
-        }
+        headers: token ? { 'Authorization': `Bearer ${token}` } : {}
       });
-      if (!res.ok) {
-        throw new Error('Failed to download file from server');
+      if (res.ok) {
+        const contentType = res.headers.get('content-type');
+        if (!contentType || !contentType.includes('application/json')) {
+          const blob = await res.blob();
+          const url = URL.createObjectURL(blob);
+          const a = document.createElement('a');
+          a.href = url;
+          a.download = file.name;
+          document.body.appendChild(a);
+          a.click();
+          document.body.removeChild(a);
+          setTimeout(() => {
+            URL.revokeObjectURL(url);
+          }, 1000);
+          onClose();
+          return;
+        }
       }
-      const blob = await res.blob();
-      const url = URL.createObjectURL(blob);
-      const a = document.createElement('a');
-      a.href = url;
-      a.download = file.name;
-      a.click();
-      setTimeout(() => {
-        URL.revokeObjectURL(url);
-      }, 1000);
-      onClose();
-    } catch (err: any) {
-      console.error('Download original failed:', err);
-      toast.error(err.message || 'Failed to download original file');
+    } catch (err) {
+      console.warn('Backend download endpoint failed, trying direct cloud fallback:', err);
     }
+
+    // Tier 2: Direct Blob fetch from Cloudinary or local storage URL
+    const directUrl = file.cloudinaryUrl || file.localUrl;
+    if (directUrl) {
+      try {
+        const cloudRes = await fetch(directUrl);
+        if (cloudRes.ok) {
+          const blob = await cloudRes.blob();
+          const url = URL.createObjectURL(blob);
+          const a = document.createElement('a');
+          a.href = url;
+          a.download = file.name;
+          document.body.appendChild(a);
+          a.click();
+          document.body.removeChild(a);
+          setTimeout(() => {
+            URL.revokeObjectURL(url);
+          }, 1000);
+          onClose();
+          return;
+        }
+      } catch (err) {
+        console.warn('Direct fetch from cloud URL failed, triggering native browser download:', err);
+      }
+
+      // Tier 3: Direct browser window open (triggers native download/navigation)
+      window.open(directUrl, '_blank');
+      onClose();
+      return;
+    }
+
+    toast.error('Failed to download file from server or cloud storage.');
   };
 
   return (

@@ -408,13 +408,28 @@ export async function getFileBlob(id: string): Promise<Blob | null> {
       const contentType = res.headers.get('content-type');
       if (contentType && contentType.includes('application/json')) {
         console.warn(`File endpoint returned JSON response for document ${id}`);
-        return null;
+      } else {
+        return await res.blob();
       }
-      return await res.blob();
     }
   } catch (error) {
     console.warn(`Failed to fetch file blob for document ${id}:`, error);
   }
+
+  // Direct Cloud Fallback: Try fetching directly from Cloudinary or local storage URL
+  const doc = useAppStore.getState().documents.find((d) => d.id === id);
+  const directUrl = doc?.cloudinaryUrl || doc?.localUrl;
+  if (directUrl) {
+    try {
+      const cloudRes = await fetch(directUrl);
+      if (cloudRes.ok) {
+        return await cloudRes.blob();
+      }
+    } catch (e) {
+      console.warn(`Direct cloud blob fetch fallback failed for document ${id}:`, e);
+    }
+  }
+
   return null;
 }
 
