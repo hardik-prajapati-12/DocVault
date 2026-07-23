@@ -9,6 +9,18 @@ import { useAppStore } from '@/store/app-store';
 type ProgressCallback = (progress: UploadProgress) => void;
 
 /**
+ * Helper fetch wrapper that automatically includes the Authorization header.
+ */
+function authFetch(input: RequestInfo | URL, init: RequestInit = {}): Promise<Response> {
+  const token = localStorage.getItem('docvault-auth-token');
+  const headers = new Headers(init.headers || {});
+  if (token && !headers.has('Authorization')) {
+    headers.set('Authorization', `Bearer ${token}`);
+  }
+  return fetch(input, { ...init, headers });
+}
+
+/**
  * Ensures that a list of folder path parts exists in the database.
  * Reuses existing folders where possible to avoid duplicates.
  * Returns the folder ID of the leaf folder.
@@ -197,7 +209,7 @@ async function generateThumbnail(file: File, maxSize: number): Promise<string> {
  * Soft-delete a document (move to trash).
  */
 export async function softDeleteDocument(id: string): Promise<void> {
-  await fetch(`/api/documents/${id}`, {
+  await authFetch(`/api/documents/${id}`, {
     method: 'PUT',
     headers: { 'Content-Type': 'application/json' },
     body: JSON.stringify({
@@ -212,7 +224,7 @@ export async function softDeleteDocument(id: string): Promise<void> {
  * Permanently delete a document and its file data.
  */
 export async function permanentDeleteDocument(id: string): Promise<void> {
-  await fetch(`/api/documents/${id}/permanent`, {
+  await authFetch(`/api/documents/${id}/permanent`, {
     method: 'DELETE',
   });
   await useAppStore.getState().fetchData();
@@ -222,7 +234,7 @@ export async function permanentDeleteDocument(id: string): Promise<void> {
  * Restore a soft-deleted document.
  */
 export async function restoreDocument(id: string): Promise<void> {
-  await fetch(`/api/documents/${id}`, {
+  await authFetch(`/api/documents/${id}`, {
     method: 'PUT',
     headers: { 'Content-Type': 'application/json' },
     body: JSON.stringify({
@@ -239,7 +251,7 @@ export async function restoreDocument(id: string): Promise<void> {
 export async function renameDocument(id: string, newName: string): Promise<void> {
   const sanitized = sanitizeFileName(newName);
   const extension = getExtension(sanitized);
-  await fetch(`/api/documents/${id}`, {
+  await authFetch(`/api/documents/${id}`, {
     method: 'PUT',
     headers: { 'Content-Type': 'application/json' },
     body: JSON.stringify({
@@ -265,7 +277,7 @@ export async function duplicateDocument(id: string): Promise<DocFile | null> {
     ? `${baseName} (copy).${original.extension}`
     : `${baseName} (copy)`;
 
-  const res = await fetch(`/api/documents/duplicate/${id}`, {
+  const res = await authFetch(`/api/documents/duplicate/${id}`, {
     method: 'POST',
     headers: { 'Content-Type': 'application/json' },
     body: JSON.stringify({ newId, newName }),
@@ -281,7 +293,7 @@ export async function duplicateDocument(id: string): Promise<DocFile | null> {
  * Move a document to a different folder.
  */
 export async function moveDocument(id: string, folderId: string | null): Promise<void> {
-  await fetch(`/api/documents/${id}`, {
+  await authFetch(`/api/documents/${id}`, {
     method: 'PUT',
     headers: { 'Content-Type': 'application/json' },
     body: JSON.stringify({ folderId }),
@@ -295,7 +307,7 @@ export async function moveDocument(id: string, folderId: string | null): Promise
 export async function toggleFavorite(id: string): Promise<void> {
   const doc = useAppStore.getState().documents.find((d) => d.id === id);
   if (!doc) return;
-  await fetch(`/api/documents/${id}`, {
+  await authFetch(`/api/documents/${id}`, {
     method: 'PUT',
     headers: { 'Content-Type': 'application/json' },
     body: JSON.stringify({ isFavorite: doc.isFavorite ? 0 : 1 }),
@@ -307,7 +319,7 @@ export async function toggleFavorite(id: string): Promise<void> {
  * Archive a document.
  */
 export async function archiveDocument(id: string): Promise<void> {
-  await fetch(`/api/documents/${id}`, {
+  await authFetch(`/api/documents/${id}`, {
     method: 'PUT',
     headers: { 'Content-Type': 'application/json' },
     body: JSON.stringify({ isArchived: 1 }),
@@ -319,7 +331,7 @@ export async function archiveDocument(id: string): Promise<void> {
  * Unarchive a document.
  */
 export async function unarchiveDocument(id: string): Promise<void> {
-  await fetch(`/api/documents/${id}`, {
+  await authFetch(`/api/documents/${id}`, {
     method: 'PUT',
     headers: { 'Content-Type': 'application/json' },
     body: JSON.stringify({ isArchived: 0 }),
@@ -331,7 +343,7 @@ export async function unarchiveDocument(id: string): Promise<void> {
  * Update document tags.
  */
 export async function updateTags(id: string, tags: string[]): Promise<void> {
-  await fetch(`/api/documents/${id}`, {
+  await authFetch(`/api/documents/${id}`, {
     method: 'PUT',
     headers: { 'Content-Type': 'application/json' },
     body: JSON.stringify({ tags }),
@@ -369,7 +381,7 @@ export async function replaceFileContent(id: string, newFile: File): Promise<voi
     formData.append('thumbnailDataUrl', thumbnailDataUrl);
   }
 
-  await fetch('/api/documents/upload', {
+  await authFetch('/api/documents/upload', {
     method: 'POST',
     body: formData,
   });
@@ -391,7 +403,7 @@ export function getFileUrl(doc: DocFile): string {
  */
 export async function getFileBlob(id: string): Promise<Blob | null> {
   try {
-    const res = await fetch(`/api/documents/${id}/file`);
+    const res = await authFetch(`/api/documents/${id}/file`);
     if (res.ok) {
       const contentType = res.headers.get('content-type');
       if (contentType && contentType.includes('application/json')) {
@@ -411,7 +423,7 @@ export async function getFileBlob(id: string): Promise<Blob | null> {
  * Bulk soft-delete multiple documents.
  */
 export async function bulkSoftDelete(ids: string[]): Promise<void> {
-  await fetch('/api/documents/bulk-soft-delete', {
+  await authFetch('/api/documents/bulk-soft-delete', {
     method: 'POST',
     headers: { 'Content-Type': 'application/json' },
     body: JSON.stringify({ ids }),
@@ -423,7 +435,7 @@ export async function bulkSoftDelete(ids: string[]): Promise<void> {
  * Bulk permanent delete.
  */
 export async function bulkPermanentDelete(ids: string[]): Promise<void> {
-  await fetch('/api/documents/bulk-permanent-delete', {
+  await authFetch('/api/documents/bulk-permanent-delete', {
     method: 'POST',
     headers: { 'Content-Type': 'application/json' },
     body: JSON.stringify({ ids }),
@@ -435,7 +447,7 @@ export async function bulkPermanentDelete(ids: string[]): Promise<void> {
  * Bulk restore.
  */
 export async function bulkRestore(ids: string[]): Promise<void> {
-  await fetch('/api/documents/bulk-restore', {
+  await authFetch('/api/documents/bulk-restore', {
     method: 'POST',
     headers: { 'Content-Type': 'application/json' },
     body: JSON.stringify({ ids }),
@@ -447,7 +459,7 @@ export async function bulkRestore(ids: string[]): Promise<void> {
  * Bulk archive multiple documents.
  */
 export async function bulkArchive(ids: string[], isArchived: number = 1): Promise<void> {
-  await fetch('/api/documents/bulk-archive', {
+  await authFetch('/api/documents/bulk-archive', {
     method: 'POST',
     headers: { 'Content-Type': 'application/json' },
     body: JSON.stringify({ ids, isArchived }),
@@ -459,7 +471,7 @@ export async function bulkArchive(ids: string[], isArchived: number = 1): Promis
  * Bulk favorite multiple documents.
  */
 export async function bulkFavorite(ids: string[], isFavorite: number = 1): Promise<void> {
-  await fetch('/api/documents/bulk-favorite', {
+  await authFetch('/api/documents/bulk-favorite', {
     method: 'POST',
     headers: { 'Content-Type': 'application/json' },
     body: JSON.stringify({ ids, isFavorite }),
@@ -471,7 +483,7 @@ export async function bulkFavorite(ids: string[], isFavorite: number = 1): Promi
  * Bulk move multiple documents to a folder.
  */
 export async function bulkMoveDocuments(ids: string[], folderId: string | null): Promise<void> {
-  await fetch('/api/documents/bulk-move', {
+  await authFetch('/api/documents/bulk-move', {
     method: 'POST',
     headers: { 'Content-Type': 'application/json' },
     body: JSON.stringify({ ids, folderId }),
@@ -485,7 +497,7 @@ export async function bulkMoveDocuments(ids: string[], folderId: string | null):
  */
 export async function createFolder(name: string, parentId: string | null = null): Promise<string> {
   const id = generateId();
-  const res = await fetch('/api/folders', {
+  const res = await authFetch('/api/folders', {
     method: 'POST',
     headers: { 'Content-Type': 'application/json' },
     body: JSON.stringify({
@@ -506,7 +518,7 @@ export async function createFolder(name: string, parentId: string | null = null)
  * Rename a folder.
  */
 export async function renameFolder(id: string, newName: string): Promise<void> {
-  const res = await fetch(`/api/folders/${id}`, {
+  const res = await authFetch(`/api/folders/${id}`, {
     method: 'PUT',
     headers: { 'Content-Type': 'application/json' },
     body: JSON.stringify({
@@ -524,7 +536,7 @@ export async function renameFolder(id: string, newName: string): Promise<void> {
  * Move a folder to a different parent folder (or null for root).
  */
 export async function moveFolder(id: string, parentId: string | null): Promise<void> {
-  const res = await fetch(`/api/folders/${id}`, {
+  const res = await authFetch(`/api/folders/${id}`, {
     method: 'PUT',
     headers: { 'Content-Type': 'application/json' },
     body: JSON.stringify({ parentId }),
@@ -540,7 +552,7 @@ export async function moveFolder(id: string, parentId: string | null): Promise<v
  * Bulk move multiple folders.
  */
 export async function bulkMoveFolders(ids: string[], parentId: string | null): Promise<void> {
-  const res = await fetch('/api/folders/bulk-move', {
+  const res = await authFetch('/api/folders/bulk-move', {
     method: 'POST',
     headers: { 'Content-Type': 'application/json' },
     body: JSON.stringify({ ids, parentId }),
@@ -557,7 +569,7 @@ export async function bulkMoveFolders(ids: string[], parentId: string | null): P
  * Delete a folder and all its contents.
  */
 export async function deleteFolder(id: string): Promise<void> {
-  const res = await fetch(`/api/folders/${id}`, {
+  const res = await authFetch(`/api/folders/${id}`, {
     method: 'DELETE',
   });
   if (!res.ok) {
@@ -571,7 +583,7 @@ export async function deleteFolder(id: string): Promise<void> {
  * Empty the trash: permanently delete all soft-deleted documents.
  */
 export async function emptyTrash(): Promise<void> {
-  await fetch('/api/documents/empty-trash', {
+  await authFetch('/api/documents/empty-trash', {
     method: 'POST',
   });
   await useAppStore.getState().fetchData();

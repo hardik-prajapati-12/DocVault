@@ -170,10 +170,11 @@ export const useAppStore = create<AppState>()(
       fetchData: async () => {
         const token = localStorage.getItem('docvault-auth-token');
         if (!token) return;
+        const headers: Record<string, string> = { Authorization: `Bearer ${token}` };
         try {
           const [docsRes, foldersRes] = await Promise.all([
-            fetch('/api/documents'),
-            fetch('/api/folders'),
+            fetch('/api/documents', { headers }),
+            fetch('/api/folders', { headers }),
           ]);
           if (docsRes.ok && foldersRes.ok) {
             const rawDocs = await docsRes.json();
