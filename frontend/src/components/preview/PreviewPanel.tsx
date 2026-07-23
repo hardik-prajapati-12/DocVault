@@ -7,6 +7,7 @@ import { formatBytes, formatRelativeDate, isImageExtension, isVideoExtension, is
 import { FileIcon } from '@/components/files/FileIcon';
 import toast from 'react-hot-toast';
 import { useConfirmStore } from '@/store/confirm-store';
+import { PdfViewer } from './PdfViewer';
 
 // Lazy-load heavy preview components with reload retry logic
 const SyntaxHighlighter = lazyWithRetry(() =>
@@ -24,12 +25,14 @@ export const PreviewPanel: React.FC = () => {
 
   const file = useAppStore((s) => s.documents.find((d) => d.id === fileId));
   const [objectUrl, setObjectUrl] = useState<string | null>(null);
+  const [pdfData, setPdfData] = useState<Blob | string | null>(null);
   const [textContent, setTextContent] = useState<string | null>(null);
   const [loading, setLoading] = useState(false);
 
   useEffect(() => {
     if (!fileId || !file) {
       setObjectUrl(null);
+      setPdfData(null);
       setTextContent(null);
       setLoading(false);
       return;
@@ -56,8 +59,10 @@ export const PreviewPanel: React.FC = () => {
           if (!blob) {
             // Fallback to direct fileUrl (e.g. Cloudinary URL) if blob fetch returned null
             if (isPdf && fileUrl) {
+              setPdfData(fileUrl);
               setObjectUrl(fileUrl);
             } else {
+              setPdfData(null);
               setObjectUrl(null);
             }
             setTextContent(null);
@@ -70,17 +75,23 @@ export const PreviewPanel: React.FC = () => {
               const header = await blob.slice(0, 5).text();
               if (header.startsWith('%PDF')) {
                 const pdfBlob = new Blob([blob], { type: 'application/pdf' });
-                const url = URL.createObjectURL(pdfBlob);
-                setObjectUrl(url);
+                setPdfData(pdfBlob);
+                setObjectUrl(null);
               } else if (fileUrl) {
-                // If blob content isn't valid PDF binary, fallback to Cloudinary direct URL
+                setPdfData(fileUrl);
                 setObjectUrl(fileUrl);
               } else {
+                setPdfData(null);
                 setObjectUrl(null);
               }
             } catch {
-              if (fileUrl) setObjectUrl(fileUrl);
-              else setObjectUrl(null);
+              if (fileUrl) {
+                setPdfData(fileUrl);
+                setObjectUrl(fileUrl);
+              } else {
+                setPdfData(null);
+                setObjectUrl(null);
+              }
             }
             setLoading(false);
             return;
@@ -107,8 +118,10 @@ export const PreviewPanel: React.FC = () => {
         .catch((err) => {
           console.error('Error loading file blob for preview:', err);
           if (isPdf && fileUrl) {
+            setPdfData(fileUrl);
             setObjectUrl(fileUrl);
           } else {
+            setPdfData(null);
             setObjectUrl(null);
           }
           setTextContent(null);
@@ -206,24 +219,11 @@ export const PreviewPanel: React.FC = () => {
 
     // PDF
     if (isPdfExtension(file.extension)) {
-      if (!objectUrl) {
-        return (
-          <div className="flex flex-col items-center justify-center h-full gap-4 text-center p-8">
-            <FileWarning className="w-16 h-16 text-[var(--text-tertiary)]" />
-            <div>
-              <h3 className="text-lg font-semibold text-[var(--text-primary)] mb-1">Failed to load PDF</h3>
-              <p className="text-sm text-[var(--text-secondary)]">
-                The PDF file could not be retrieved from the server.
-              </p>
-            </div>
-          </div>
-        );
-      }
       return (
-        <iframe
-          src={objectUrl}
-          className="w-full h-full border-0 rounded-lg"
-          title={file.name}
+        <PdfViewer
+          fileData={pdfData || objectUrl || (file ? getFileUrl(file) : null)}
+          fileName={file.name}
+          onDownload={() => setDownloadDialogFileId(file.id)}
         />
       );
     }
