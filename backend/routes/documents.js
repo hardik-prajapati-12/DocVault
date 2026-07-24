@@ -40,6 +40,46 @@ cloudinary.config({
   api_secret: process.env.CLOUDINARY_API_SECRET
 });
 
+/**
+ * Helper to delete a document's asset from Cloudinary.
+ */
+async function deleteFromCloudinary(doc) {
+  if (!doc) return;
+  try {
+    let publicId = doc.cloudinaryPublicId;
+    let resourceType = doc.cloudinaryResourceType || 'image';
+
+    if (!publicId && doc.cloudinaryUrl) {
+      const urlParts = doc.cloudinaryUrl.split('/');
+      const uploadIdx = urlParts.indexOf('upload');
+      if (uploadIdx !== -1 && uploadIdx + 1 < urlParts.length) {
+        let pathAfterUpload = urlParts.slice(uploadIdx + 1).join('/');
+        pathAfterUpload = pathAfterUpload.replace(/^v\d+\//, '');
+        const lastDotIdx = pathAfterUpload.lastIndexOf('.');
+        publicId = lastDotIdx !== -1 ? pathAfterUpload.substring(0, lastDotIdx) : pathAfterUpload;
+
+        if (uploadIdx > 0) {
+          const typeCandidate = urlParts[uploadIdx - 1];
+          if (['image', 'raw', 'video'].includes(typeCandidate)) {
+            resourceType = typeCandidate;
+          }
+        }
+      }
+    }
+
+    if (publicId) {
+      const result = await cloudinary.uploader.destroy(publicId, { resource_type: resourceType, invalidate: true });
+      if (result.result !== 'ok' && result.result !== 'not_found') {
+        const altType = resourceType === 'raw' ? 'image' : 'raw';
+        await cloudinary.uploader.destroy(publicId, { resource_type: altType, invalidate: true });
+      }
+      console.log(`Cloudinary asset deleted: ${publicId} (${resourceType})`);
+    }
+  } catch (err) {
+    console.error(`Error deleting Cloudinary asset for doc ${doc.id}:`, err);
+  }
+}
+
 // Get all documents
 router.get('/', async (req, res) => {
   try {
@@ -71,6 +111,8 @@ router.post('/upload', upload.single('file'), async (req, res) => {
 
     // Upload to Cloudinary
     let cloudinaryUrl = null;
+    let cloudinaryPublicId = null;
+    let cloudinaryResourceType = null;
     try {
       const isPdf = req.file.mimetype === 'application/pdf' || path.extname(req.file.originalname).toLowerCase() === '.pdf';
       const result = await cloudinary.uploader.upload(req.file.path, {
@@ -78,6 +120,8 @@ router.post('/upload', upload.single('file'), async (req, res) => {
         folder: 'docvault'
       });
       cloudinaryUrl = result.secure_url;
+      cloudinaryPublicId = result.public_id;
+      cloudinaryResourceType = result.resource_type;
     } catch (err) {
       console.error('Cloudinary upload error:', err);
       // We will fallback to local and MongoDB buffer if Cloudinary fails
@@ -108,6 +152,8 @@ router.post('/upload', upload.single('file'), async (req, res) => {
         opfsPath: req.file.filename,
         thumbnailDataUrl: thumbnailDataUrl || null,
         cloudinaryUrl,
+        cloudinaryPublicId,
+        cloudinaryResourceType,
         localUrl,
         fileDataBuffer
       },
@@ -206,11 +252,12 @@ router.delete('/:id/permanent', async (req, res) => {
       }
     }
 
-    // 2. Delete from MongoDB
+    // 2. Delete asset from Cloudinary
+    await deleteFromCloudinary(doc);
+
+    // 3. Delete from MongoDB
     await DocFile.deleteOne({ id: req.params.id, userId: req.user.id });
 
-    // Note: Deleting from Cloudinary is asynchronous/optional but good practice:
-    // If we wanted to, we could extract the public_id and delete it. Let's keep it simple.
     res.json({ message: 'Document permanently deleted' });
   } catch (error) {
     res.status(500).json({ error: error.message });
@@ -243,6 +290,7 @@ router.post('/bulk-permanent-delete', async (req, res) => {
           fs.unlinkSync(filePath);
         }
       }
+      await deleteFromCloudinary(doc);
     }
     await DocFile.deleteMany({ id: { $in: ids }, userId: req.user.id });
     res.json({ message: 'Documents permanently deleted' });
@@ -276,6 +324,7 @@ router.post('/empty-trash', async (req, res) => {
           fs.unlinkSync(filePath);
         }
       }
+      await deleteFromCloudinary(doc);
     }
     await DocFile.deleteMany({ isDeleted: 1, userId: req.user.id });
     await Folder.deleteMany({ isDeleted: 1, userId: req.user.id });
@@ -322,10 +371,62 @@ router.post('/clear-all', async (req, res) => {
           fs.unlinkSync(filePath);
         }
       }
+      await deleteFromCloudinary(doc);
     }
     await DocFile.deleteMany({ userId: req.user.id });
     res.json({ message: 'All documents cleared' });
   } catch (error) {
+    res.status(500).json({ error: error.message });
+  }
+});
+
+// Cleanup Orphaned Cloudinary Files (Sync backend DB with Cloudinary folder)
+router.post('/cleanup-cloudinary', async (req, res) => {
+  try {
+    // 1. Get active documents in database
+    const activeDocs = await DocFile.find({ userId: req.user.id });
+    const activePublicIds = new Set();
+    for (const doc of activeDocs) {
+      if (doc.cloudinaryPublicId) {
+        activePublicIds.add(doc.cloudinaryPublicId);
+      } else if (doc.cloudinaryUrl) {
+        const urlParts = doc.cloudinaryUrl.split('/');
+        const uploadIdx = urlParts.indexOf('upload');
+        if (uploadIdx !== -1 && uploadIdx + 1 < urlParts.length) {
+          let pathAfterUpload = urlParts.slice(uploadIdx + 1).join('/');
+          pathAfterUpload = pathAfterUpload.replace(/^v\d+\//, '');
+          const lastDotIdx = pathAfterUpload.lastIndexOf('.');
+          const publicId = lastDotIdx !== -1 ? pathAfterUpload.substring(0, lastDotIdx) : pathAfterUpload;
+          activePublicIds.add(publicId);
+        }
+      }
+    }
+
+    // 2. Search Cloudinary for resources in 'docvault' folder
+    let deletedCount = 0;
+    for (const resourceType of ['image', 'raw', 'video']) {
+      try {
+        const resources = await cloudinary.api.resources({
+          type: 'upload',
+          prefix: 'docvault',
+          resource_type: resourceType,
+          max_results: 500
+        });
+        for (const item of resources.resources || []) {
+          if (!activePublicIds.has(item.public_id)) {
+            await cloudinary.uploader.destroy(item.public_id, { resource_type: resourceType, invalidate: true });
+            deletedCount++;
+            console.log(`Cleaned up orphaned Cloudinary asset: ${item.public_id}`);
+          }
+        }
+      } catch (err) {
+        console.warn(`Cloudinary cleanup search warning for ${resourceType}:`, err.message);
+      }
+    }
+
+    res.json({ message: `Cloudinary cleanup complete. ${deletedCount} orphaned assets deleted.`, deletedCount });
+  } catch (error) {
+    console.error('Cloudinary cleanup error:', error);
     res.status(500).json({ error: error.message });
   }
 });

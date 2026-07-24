@@ -45,6 +45,8 @@ const DocFileSchema = new mongoose.Schema({
   opfsPath: { type: String, default: '' },
   thumbnailDataUrl: { type: String, default: null },
   cloudinaryUrl: { type: String, default: null },
+  cloudinaryPublicId: { type: String, default: null },
+  cloudinaryResourceType: { type: String, default: null },
   localUrl: { type: String, default: null },
   fileDataBuffer: { type: Buffer, default: null }
 });

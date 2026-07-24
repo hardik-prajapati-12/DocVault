@@ -225,6 +225,7 @@ export async function softDeleteDocument(id: string): Promise<void> {
  * Permanently delete a document and its file data.
  */
 export async function permanentDeleteDocument(id: string): Promise<void> {
+  await deleteCachedFile(id);
   await authFetch(`/api/documents/${id}/permanent`, {
     method: 'DELETE',
   });
@@ -399,7 +400,7 @@ export function getFileUrl(doc: DocFile): string {
   return doc.localUrl || '';
 }
 
-import { setCachedFile, getCachedFile } from './file-cache';
+import { setCachedFile, getCachedFile, deleteCachedFile } from './file-cache';
 
 /**
  * Get file binary as a Blob.
@@ -468,6 +469,9 @@ export async function bulkSoftDelete(ids: string[]): Promise<void> {
  * Bulk permanent delete.
  */
 export async function bulkPermanentDelete(ids: string[]): Promise<void> {
+  for (const id of ids) {
+    await deleteCachedFile(id);
+  }
   await authFetch('/api/documents/bulk-permanent-delete', {
     method: 'POST',
     headers: { 'Content-Type': 'application/json' },
@@ -616,6 +620,10 @@ export async function deleteFolder(id: string): Promise<void> {
  * Empty the trash: permanently delete all soft-deleted documents.
  */
 export async function emptyTrash(): Promise<void> {
+  const trashed = useAppStore.getState().documents.filter((d) => d.isDeleted === 1);
+  for (const doc of trashed) {
+    await deleteCachedFile(doc.id);
+  }
   await authFetch('/api/documents/empty-trash', {
     method: 'POST',
   });
