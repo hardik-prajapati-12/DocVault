@@ -179,10 +179,12 @@ export const DownloadDialog: React.FC = () => {
     a.href = url;
     
     const ext = isImage ? 'jpg' : file.extension;
-    const baseName = file.name.substring(0, file.name.lastIndexOf('.')) || file.name;
+    const rawBaseName = file.name.includes('.') ? file.name.substring(0, file.name.lastIndexOf('.')) : file.name;
 
-    a.download = `compressed_${baseName}.${ext}`;
+    a.download = `compressed_${rawBaseName}.${ext}`;
+    document.body.appendChild(a);
     a.click();
+    document.body.removeChild(a);
     setTimeout(() => {
       URL.revokeObjectURL(url);
     }, 1000);
@@ -217,34 +219,33 @@ export const DownloadDialog: React.FC = () => {
         }
       }
     } catch (err) {
-      console.warn('Backend download endpoint failed, trying direct cloud fallback:', err);
+      console.warn('Backend download endpoint failed, trying getFileBlob fallback:', err);
     }
 
-    // Tier 2: Direct Blob fetch from Cloudinary or local storage URL
+    // Tier 2: Call file service helper getFileBlob
+    try {
+      const blob = await getFileBlob(file.id);
+      if (blob) {
+        const url = URL.createObjectURL(blob);
+        const a = document.createElement('a');
+        a.href = url;
+        a.download = file.name;
+        document.body.appendChild(a);
+        a.click();
+        document.body.removeChild(a);
+        setTimeout(() => {
+          URL.revokeObjectURL(url);
+        }, 1000);
+        onClose();
+        return;
+      }
+    } catch (err) {
+      console.warn('getFileBlob fallback failed, trying direct URL:', err);
+    }
+
+    // Tier 3: Direct URL window fallback
     const directUrl = file.cloudinaryUrl || file.localUrl;
     if (directUrl) {
-      try {
-        const cloudRes = await fetch(directUrl);
-        if (cloudRes.ok) {
-          const blob = await cloudRes.blob();
-          const url = URL.createObjectURL(blob);
-          const a = document.createElement('a');
-          a.href = url;
-          a.download = file.name;
-          document.body.appendChild(a);
-          a.click();
-          document.body.removeChild(a);
-          setTimeout(() => {
-            URL.revokeObjectURL(url);
-          }, 1000);
-          onClose();
-          return;
-        }
-      } catch (err) {
-        console.warn('Direct fetch from cloud URL failed, triggering native browser download:', err);
-      }
-
-      // Tier 3: Direct browser window open (triggers native download/navigation)
       window.open(directUrl, '_blank');
       onClose();
       return;

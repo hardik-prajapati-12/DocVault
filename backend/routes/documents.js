@@ -376,6 +376,7 @@ router.get('/:id/file', async (req, res) => {
     if (doc.opfsPath) {
       const localPath = path.join('uploads', doc.opfsPath);
       if (fs.existsSync(localPath)) {
+        res.setHeader('Content-Type', doc.mimeType || (doc.extension === 'pdf' ? 'application/pdf' : 'application/octet-stream'));
         if (isDownload) {
           res.setHeader('Content-Disposition', `attachment; filename="${encodeURIComponent(safeFileName)}"`);
         }

@@ -136,7 +136,7 @@ export class CompressionEngine {
 
     onProgress?.({ step: 'complete', percentage: 100, statusText: 'Compression finished!' });
     
-    const compressedBlob = new Blob([resultBytes.buffer as ArrayBuffer], { type: 'application/pdf' });
+    const compressedBlob = new Blob([resultBytes as unknown as BlobPart], { type: 'application/pdf' });
 
     return {
       blob: compressedBlob,

@@ -72,8 +72,8 @@ export const PreviewPanel: React.FC = () => {
 
           if (isPdf) {
             try {
-              const header = await blob.slice(0, 5).text();
-              if (header.startsWith('%PDF')) {
+              const header = await blob.slice(0, 1024).text();
+              if (header.includes('%PDF')) {
                 const pdfBlob = new Blob([blob], { type: 'application/pdf' });
                 setPdfData(pdfBlob);
                 setObjectUrl(null);

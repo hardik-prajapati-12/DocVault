@@ -31,20 +31,25 @@ export class ImageExtractor {
       visitedRefs.add(refStr);
 
       try {
-        const width = (dict.get(PDFName.of('Width')) as any).asNumber();
-        const height = (dict.get(PDFName.of('Height')) as any).asNumber();
-        const filter = dict.get(PDFName.of('Filter'));
+        const widthRaw = pdfLibDoc.context.lookup(dict.get(PDFName.of('Width')));
+        const heightRaw = pdfLibDoc.context.lookup(dict.get(PDFName.of('Height')));
+        
+        const width = (widthRaw as any)?.asNumber ? (widthRaw as any).asNumber() : Number(widthRaw || 0);
+        const height = (heightRaw as any)?.asNumber ? (heightRaw as any).asNumber() : Number(heightRaw || 0);
+        
+        if (!width || !height || width <= 0 || height <= 0) continue;
+
+        const filterRaw = pdfLibDoc.context.lookup(dict.get(PDFName.of('Filter')));
         
         let filterName = 'Raw';
-        if (filter instanceof PDFName) {
-          filterName = filter.value() || 'Raw';
-        } else if (Array.isArray(filter)) {
-          // If there are multiple filters (e.g. [/A85 /DCTDecode])
-          filterName = filter.map(f => f instanceof PDFName ? (f.value() || '') : '').join(',');
+        if (filterRaw instanceof PDFName) {
+          filterName = filterRaw.value() || 'Raw';
+        } else if (Array.isArray(filterRaw)) {
+          filterName = filterRaw.map(f => f instanceof PDFName ? (f.value() || '') : '').join(',');
         }
 
         const smaskRef = dict.get(PDFName.of('SMask'));
-        const hasAlpha = smaskRef instanceof PDFRef;
+        const hasAlpha = smaskRef instanceof PDFRef || !!pdfLibDoc.context.lookup(smaskRef);
         
         const compressedBytes = obj.getContents();
         let contents = compressedBytes;
@@ -62,14 +67,48 @@ export class ImageExtractor {
         let blob: Blob;
 
         if (filterName.includes('DCTDecode')) {
-          // DCTDecode is JPEG, we can use the bytes directly
-          blob = new Blob([contents.buffer as ArrayBuffer], { type: 'image/jpeg' });
+          // DCTDecode is JPEG, create Blob safely using Uint8Array slice
+          const safeBytes = new Uint8Array(contents.buffer as ArrayBuffer, contents.byteOffset, contents.byteLength);
+          blob = new Blob([safeBytes as unknown as BlobPart], { type: 'image/jpeg' });
           mimeType = 'image/jpeg';
         } else {
           // FlateDecode or Raw pixel stream: decode to canvas
-          const colorSpace = dict.get(PDFName.of('ColorSpace'));
-          let isRGB = colorSpace === PDFName.of('DeviceRGB');
-          let isGray = colorSpace === PDFName.of('DeviceGray');
+          let colorSpaceObj = pdfLibDoc.context.lookup(dict.get(PDFName.of('ColorSpace')));
+          let isRGB = false;
+          let isGray = false;
+
+          if (colorSpaceObj === PDFName.of('DeviceRGB')) {
+            isRGB = true;
+          } else if (colorSpaceObj === PDFName.of('DeviceGray')) {
+            isGray = true;
+          } else if (Array.isArray(colorSpaceObj) || (colorSpaceObj && 'array' in (colorSpaceObj as any))) {
+            const csArray = colorSpaceObj as any;
+            const firstElement = csArray.get ? csArray.get(0) : csArray[0];
+            if (firstElement === PDFName.of('ICCBased')) {
+              const iccRef = csArray.get ? csArray.get(1) : csArray[1];
+              const iccStream = pdfLibDoc.context.lookup(iccRef);
+              if (iccStream && (iccStream as any).dict) {
+                const n = ((iccStream as any).dict.get(PDFName.of('N')) as any)?.asNumber?.() || 3;
+                if (n === 1) isGray = true;
+                else isRGB = true;
+              } else {
+                isRGB = true;
+              }
+            } else if (firstElement === PDFName.of('DeviceRGB')) {
+              isRGB = true;
+            } else if (firstElement === PDFName.of('DeviceGray')) {
+              isGray = true;
+            }
+          }
+
+          // Heuristic fallback if color space could not be parsed explicitly
+          if (!isRGB && !isGray) {
+            if (contents.length >= width * height * 3) {
+              isRGB = true;
+            } else if (contents.length >= width * height) {
+              isGray = true;
+            }
+          }
           
           let alphaBytes: Uint8Array | undefined;
           if (smaskRef instanceof PDFRef) {
@@ -78,7 +117,7 @@ export class ImageExtractor {
               const smaskCompressed = smaskObj.getContents();
               try {
                 alphaBytes = unzlibSync(smaskCompressed);
-              } catch (zlibErr) {
+              } catch {
                 alphaBytes = smaskCompressed;
               }
             }
@@ -103,7 +142,6 @@ export class ImageExtractor {
               const gray = contents[byteIdx++];
               r = g = b = gray;
             } else if (byteIdx < contents.length) {
-              // Fallback for CMYK or other spaces
               const v = contents[byteIdx++];
               r = g = b = v;
             }

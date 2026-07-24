@@ -1,14 +1,16 @@
-import React, { useState } from 'react';
+import React, { useState, useEffect, useMemo } from 'react';
 import { Document, Page, pdfjs } from 'react-pdf';
 import { ChevronLeft, ChevronRight, ZoomIn, ZoomOut, RotateCw, Download, FileWarning, Loader2 } from 'lucide-react';
 import 'react-pdf/dist/Page/AnnotationLayer.css';
 import 'react-pdf/dist/Page/TextLayer.css';
 
-// Set up worker using unpkg CDN matching pdfjs-dist version
-pdfjs.GlobalWorkerOptions.workerSrc = `https://unpkg.com/pdfjs-dist@${pdfjs.version || '5.4.296'}/build/pdf.worker.min.mjs`;
+// Import local PDF.js worker asset via Vite URL import
+import pdfWorker from 'pdfjs-dist/build/pdf.worker.min.mjs?url';
+
+pdfjs.GlobalWorkerOptions.workerSrc = pdfWorker;
 
 interface PdfViewerProps {
-  fileData: Blob | ArrayBuffer | string | null;
+  fileData: Blob | ArrayBuffer | Uint8Array | string | null;
   fileName: string;
   onDownload?: () => void;
 }
@@ -20,6 +22,27 @@ export const PdfViewer: React.FC<PdfViewerProps> = ({ fileData, fileName, onDown
   const [rotation, setRotation] = useState<number>(0);
   const [loading, setLoading] = useState<boolean>(true);
   const [error, setError] = useState<boolean>(false);
+
+  // Reset state when fileData changes
+  useEffect(() => {
+    setLoading(true);
+    setError(false);
+    setNumPages(null);
+    setPageNumber(1);
+  }, [fileData]);
+
+  const documentProp = useMemo(() => {
+    if (!fileData) return null;
+    if (typeof fileData === 'string') {
+      const token = localStorage.getItem('docvault-auth-token');
+      return {
+        url: fileData,
+        withCredentials: true,
+        httpHeaders: token ? { Authorization: `Bearer ${token}` } : {},
+      };
+    }
+    return fileData;
+  }, [fileData]);
 
   function onDocumentLoadSuccess({ numPages }: { numPages: number }) {
     setNumPages(numPages);
@@ -98,9 +121,9 @@ export const PdfViewer: React.FC<PdfViewerProps> = ({ fileData, fileName, onDown
 
       {/* PDF View Container */}
       <div className="flex-1 overflow-auto flex items-center justify-center p-4 min-h-0 bg-[#18181b]">
-        {fileData && !error ? (
+        {documentProp && !error ? (
           <Document
-            file={fileData}
+            file={documentProp as any}
             onLoadSuccess={onDocumentLoadSuccess}
             onLoadError={onDocumentLoadError}
             loading={

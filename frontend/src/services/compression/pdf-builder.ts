@@ -28,6 +28,16 @@ export class PdfBuilder {
       dict.set(PDFName.of('Width'), PDFNumber.of(optImage.width));
       dict.set(PDFName.of('Height'), PDFNumber.of(optImage.height));
       dict.set(PDFName.of('Length'), PDFNumber.of(newBytes.length));
+      dict.set(PDFName.of('BitsPerComponent'), PDFNumber.of(8));
+
+      if (optImage.filter === 'DCTDecode') {
+        dict.set(
+          PDFName.of('ColorSpace'),
+          PDFName.of(options.colorMode === 'grayscale' ? 'DeviceGray' : 'DeviceRGB')
+        );
+        dict.delete(PDFName.of('DecodeParms'));
+        dict.delete(PDFName.of('SMask'));
+      }
 
       // Re-assign the new stream object back to the indirect reference in context
       const newStream = PDFRawStream.of(dict, newBytes);
