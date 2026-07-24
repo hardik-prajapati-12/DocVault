@@ -1,9 +1,19 @@
 import { PDFDocument } from 'pdf-lib';
 import * as pdfjsLib from 'pdfjs-dist';
 import pdfWorker from 'pdfjs-dist/build/pdf.worker.min.mjs?url';
-
-if (!pdfjsLib.GlobalWorkerOptions.workerSrc) {
-  pdfjsLib.GlobalWorkerOptions.workerSrc = pdfWorker;
+if (!pdfjsLib.GlobalWorkerOptions.workerPort && !pdfjsLib.GlobalWorkerOptions.workerSrc) {
+  if (typeof window !== 'undefined' && 'Worker' in window) {
+    try {
+      pdfjsLib.GlobalWorkerOptions.workerPort = new Worker(
+        new URL('pdfjs-dist/build/pdf.worker.min.mjs', import.meta.url),
+        { type: 'module' }
+      );
+    } catch {
+      pdfjsLib.GlobalWorkerOptions.workerSrc = pdfWorker;
+    }
+  } else {
+    pdfjsLib.GlobalWorkerOptions.workerSrc = pdfWorker;
+  }
 }
 
 export interface LoadedPdf {

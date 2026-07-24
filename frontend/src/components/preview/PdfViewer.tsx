@@ -7,7 +7,20 @@ import 'react-pdf/dist/Page/TextLayer.css';
 // Import local PDF.js worker asset via Vite URL import
 import pdfWorker from 'pdfjs-dist/build/pdf.worker.min.mjs?url';
 
-pdfjs.GlobalWorkerOptions.workerSrc = pdfWorker;
+if (!pdfjs.GlobalWorkerOptions.workerPort && !pdfjs.GlobalWorkerOptions.workerSrc) {
+  if (typeof window !== 'undefined' && 'Worker' in window) {
+    try {
+      pdfjs.GlobalWorkerOptions.workerPort = new Worker(
+        new URL('pdfjs-dist/build/pdf.worker.min.mjs', import.meta.url),
+        { type: 'module' }
+      );
+    } catch {
+      pdfjs.GlobalWorkerOptions.workerSrc = `https://cdn.jsdelivr.net/npm/pdfjs-dist@${pdfjs.version || '5.4.296'}/build/pdf.worker.min.mjs`;
+    }
+  } else {
+    pdfjs.GlobalWorkerOptions.workerSrc = pdfWorker;
+  }
+}
 
 interface PdfViewerProps {
   fileData: Blob | ArrayBuffer | Uint8Array | string | null;

@@ -45,7 +45,8 @@ const DocFileSchema = new mongoose.Schema({
   opfsPath: { type: String, default: '' },
   thumbnailDataUrl: { type: String, default: null },
   cloudinaryUrl: { type: String, default: null },
-  localUrl: { type: String, default: null }
+  localUrl: { type: String, default: null },
+  fileDataBuffer: { type: Buffer, default: null }
 });
 
 export const User = mongoose.model('User', UserSchema);

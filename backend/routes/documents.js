@@ -59,17 +59,28 @@ router.post('/upload', upload.single('file'), async (req, res) => {
 
     const { id, folderId, createdAt, modifiedAt, thumbnailDataUrl } = req.body;
 
+    // Read file buffer for MongoDB backup storage if file is under 15MB
+    let fileDataBuffer = null;
+    if (req.file.size <= 15 * 1024 * 1024) {
+      try {
+        fileDataBuffer = fs.readFileSync(req.file.path);
+      } catch (readErr) {
+        console.warn('Failed to read upload file buffer:', readErr);
+      }
+    }
+
     // Upload to Cloudinary
     let cloudinaryUrl = null;
     try {
+      const isPdf = req.file.mimetype === 'application/pdf' || path.extname(req.file.originalname).toLowerCase() === '.pdf';
       const result = await cloudinary.uploader.upload(req.file.path, {
-        resource_type: 'auto',
+        resource_type: isPdf ? 'raw' : 'auto',
         folder: 'docvault'
       });
       cloudinaryUrl = result.secure_url;
     } catch (err) {
       console.error('Cloudinary upload error:', err);
-      // We will fallback to only local if Cloudinary fails, but keep proceeding
+      // We will fallback to local and MongoDB buffer if Cloudinary fails
     }
 
     // Local file path/URL
@@ -94,10 +105,11 @@ router.post('/upload', upload.single('file'), async (req, res) => {
         uploadedAt: new Date(),
         deletedAt: null,
         compressedSize: req.body.compressedSize ? Number(req.body.compressedSize) : null,
-        opfsPath: req.file.filename, // We can store the local filename as opfsPath
+        opfsPath: req.file.filename,
         thumbnailDataUrl: thumbnailDataUrl || null,
         cloudinaryUrl,
-        localUrl
+        localUrl,
+        fileDataBuffer
       },
       { upsert: true, new: true }
     );
@@ -382,6 +394,16 @@ router.get('/:id/file', async (req, res) => {
         }
         return res.sendFile(path.resolve(localPath));
       }
+    }
+
+    // 2. Try serving from MongoDB binary buffer fallback (preserves files across cloud restart/redeploy)
+    if (doc.fileDataBuffer && doc.fileDataBuffer.length > 0) {
+      res.setHeader('Content-Type', doc.mimeType || (doc.extension === 'pdf' ? 'application/pdf' : 'application/octet-stream'));
+      res.setHeader('Content-Length', doc.fileDataBuffer.length);
+      if (isDownload) {
+        res.setHeader('Content-Disposition', `attachment; filename="${encodeURIComponent(safeFileName)}"`);
+      }
+      return res.send(doc.fileDataBuffer);
     }
 
     // 2. If missing from local disk, fallback to streaming from Cloudinary

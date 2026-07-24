@@ -157,6 +157,7 @@ export async function uploadFiles(
       progress.status = 'complete';
       progress.percentage = 100;
       onProgress?.(progress);
+      await setCachedFile(id, file);
       results.push(doc);
     } catch (error) {
       progress.status = 'error';
@@ -398,10 +399,19 @@ export function getFileUrl(doc: DocFile): string {
   return doc.localUrl || '';
 }
 
+import { setCachedFile, getCachedFile } from './file-cache';
+
 /**
  * Get file binary as a Blob.
  */
 export async function getFileBlob(id: string): Promise<Blob | null> {
+  // 1. Check IndexedDB local client cache first
+  const cached = await getCachedFile(id);
+  if (cached && cached.size > 0) {
+    return cached;
+  }
+
+  // 2. Fetch from backend endpoint
   try {
     const res = await authFetch(`/api/documents/${id}/file`);
     if (res.ok) {
@@ -409,21 +419,29 @@ export async function getFileBlob(id: string): Promise<Blob | null> {
       if (contentType && contentType.includes('application/json')) {
         console.warn(`File endpoint returned JSON response for document ${id}`);
       } else {
-        return await res.blob();
+        const blob = await res.blob();
+        if (blob && blob.size > 0) {
+          setCachedFile(id, blob); // Save to cache asynchronously
+          return blob;
+        }
       }
     }
   } catch (error) {
     console.warn(`Failed to fetch file blob for document ${id}:`, error);
   }
 
-  // Direct Cloud Fallback: Try fetching directly from Cloudinary or local storage URL
+  // 3. Direct Cloud Fallback: Try fetching directly from Cloudinary or local storage URL
   const doc = useAppStore.getState().documents.find((d) => d.id === id);
   const directUrl = doc?.cloudinaryUrl || doc?.localUrl;
   if (directUrl) {
     try {
       const cloudRes = await fetch(directUrl);
       if (cloudRes.ok) {
-        return await cloudRes.blob();
+        const blob = await cloudRes.blob();
+        if (blob && blob.size > 0) {
+          setCachedFile(id, blob);
+          return blob;
+        }
       }
     } catch (e) {
       console.warn(`Direct cloud blob fetch fallback failed for document ${id}:`, e);
